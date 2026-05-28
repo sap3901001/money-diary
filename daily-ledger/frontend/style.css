@@ -1,0 +1,373 @@
+/* Daily Ledger — 全域樣式（馬卡龍紫色調） */
+
+/* ── CSS 顏色變數 ── */
+:root {
+  --bg-color: #f2f0f7;
+  /* 極淺薰衣草灰（背景） */
+  --card-bg: #ffffff;
+  /* 純白卡片 */
+  --nav-bg: #d8d6e5;
+  /* 莫蘭迪灰紫（導航列） */
+  --text-main: #4a4a4a;
+  /* 深灰文字 */
+  --text-muted: #8e8e8e;
+  /* 淺灰說明文字 */
+  --color-expense: #e59a8d;
+  /* 乾燥玫瑰粉（支出） */
+  --color-income: #a3c6e4;
+  /* 寶寶藍（收入） */
+  --color-primary-btn: #7d6da3;
+  /* 深丁香紫（主要按鈕） */
+  --color-border: #e0e0e0;
+  /* 邊框 */
+  --border-radius: 12px;
+  --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* ── 字體 ── */
+body {
+  font-family: "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system,
+    "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  margin: 0;
+}
+
+/* ── Navbar ── */
+.navbar-dl {
+  background-color: var(--nav-bg) !important;
+  padding: 10px 20px;
+  box-shadow: var(--box-shadow);
+}
+
+.navbar-dl .navbar-brand {
+  font-weight: bold;
+  color: var(--text-main) !important;
+}
+
+.navbar-dl .nav-link {
+  color: var(--text-main) !important;
+  opacity: .8;
+}
+
+.navbar-dl .nav-link:hover,
+.navbar-dl .nav-link.active {
+  opacity: 1;
+  color: var(--color-primary-btn) !important;
+}
+
+.navbar-dl .navbar-toggler {
+  border-color: rgba(74, 74, 74, .3);
+}
+
+.navbar-dl .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(74,74,74,0.75)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* ── 主卡片 ── */
+.main-card {
+  background-color: var(--card-bg);
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 1.5rem;
+  margin-bottom: 25px;
+}
+
+/* ── 金額（等寬數字對齊）── */
+.amount {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ── 收入 / 支出 色彩 ── */
+.text-income {
+  color: var(--color-income) !important;
+}
+
+.text-expense {
+  color: var(--color-expense) !important;
+}
+
+.text-net {
+  color: var(--color-primary-btn) !important;
+}
+
+.badge-income {
+  background-color: var(--color-income);
+  color: #fff;
+}
+
+.badge-expense {
+  background-color: var(--color-expense);
+  color: #fff;
+}
+
+/* ── 類型 button group ── */
+.type-group .btn-outline-expense {
+  border-color: var(--color-expense);
+  color: var(--color-expense);
+}
+
+.type-group .btn-check:checked+.btn-outline-expense {
+  background-color: var(--color-expense);
+  border-color: var(--color-expense);
+  color: #fff;
+}
+
+.type-group .btn-outline-income {
+  border-color: var(--color-income);
+  color: var(--color-income);
+}
+
+.type-group .btn-check:checked+.btn-outline-income {
+  background-color: var(--color-income);
+  border-color: var(--color-income);
+  color: #fff;
+}
+
+/* 相容舊版 Bootstrap outline class */
+.type-group .btn-check:checked+.btn-outline-danger {
+  background-color: var(--color-expense);
+  border-color: var(--color-expense);
+  color: #fff;
+}
+
+.type-group .btn-check:checked+.btn-outline-success {
+  background-color: var(--color-income);
+  border-color: var(--color-income);
+  color: #fff;
+}
+
+.type-group .btn-outline-danger {
+  border-color: var(--color-expense);
+  color: var(--color-expense);
+}
+
+.type-group .btn-outline-success {
+  border-color: var(--color-income);
+  color: var(--color-income);
+}
+
+/* ── 輸入欄位 ── */
+.form-control,
+.form-select {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px;
+  background-color: #fafafa;
+  color: var(--text-main);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-primary-btn);
+  box-shadow: 0 0 0 0.2rem rgba(125, 109, 163, 0.25);
+  background-color: #fafafa;
+}
+
+/* ── 主要送出按鈕 ── */
+.btn-add,
+.btn-primary {
+  background-color: var(--color-primary-btn) !important;
+  border-color: var(--color-primary-btn) !important;
+  color: #fff !important;
+  border-radius: 8px;
+  transition: filter .3s;
+}
+
+.btn-add:hover,
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+/* ── outline-primary → 紫色 ── */
+.btn-outline-primary {
+  border-color: var(--color-primary-btn) !important;
+  color: var(--color-primary-btn) !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary.active {
+  background-color: var(--color-primary-btn) !important;
+  color: #fff !important;
+}
+
+/* ── 次要按鈕（outline-secondary）── */
+.btn-outline-secondary {
+  border-color: #bbb !important;
+  color: var(--text-main) !important;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary.active {
+  background-color: #d8d6e5 !important;
+  color: var(--text-main) !important;
+}
+
+/* ── 今日記錄列表 ── */
+#todayList .today-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .4rem .5rem;
+  border-radius: 8px;
+  font-size: .9rem;
+}
+
+#todayList .today-item:hover {
+  background: #f5f3fb;
+}
+
+#todayList .today-amount {
+  margin-left: auto;
+  font-weight: 500;
+}
+
+/* ── 分隔標題 ── */
+.section-title {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .5rem;
+}
+
+/* ── Toast 容器 ── */
+#toastContainer {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1100;
+  min-width: 260px;
+}
+
+/* ── 表格 ── */
+.table th {
+  font-size: .85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+/* ── 摘要列 ── */
+.summary-bar {
+  background: #f5f3fb;
+  border-radius: 8px;
+  padding: .6rem 1rem;
+  font-size: .9rem;
+}
+
+/* ── 報表容器 ── */
+.chart-wrapper {
+  position: relative;
+  height: 300px;
+}
+
+/* ── 分類管理列表 ── */
+.cat-main-row {
+  background: #f5f3fb;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.cat-main-row:hover {
+  background: #ede9f7;
+}
+
+.cat-sub-row {
+  border-left: 3px solid #c4b8e2;
+  margin-left: .5rem;
+  border-radius: 0 8px 8px 0;
+}
+
+.cat-sub-row:hover {
+  background: #f5f3fb;
+}
+
+/* ── 匯入頁：步驟徽章 ── */
+.step-badge {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .9rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-active {
+  background: var(--color-primary-btn);
+  color: #fff;
+}
+
+.step-inactive {
+  background: var(--color-border);
+  color: var(--text-muted);
+}
+
+/* ── 匯入頁：拖放區 ── */
+.drop-zone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--border-radius);
+  padding: 2rem 1rem;
+  text-align: center;
+  transition: border-color .2s, background .2s;
+  cursor: pointer;
+}
+
+.drop-zone:hover,
+.drop-zone-over {
+  border-color: var(--color-primary-btn);
+  background: #f0ebfa;
+}
+
+/* ── input-group-text ── */
+.input-group-text {
+  background-color: #f0ebfa;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary-btn);
+  font-weight: 600;
+}
+
+/* ── alert ── */
+.alert-info {
+  background: #eef5fb;
+  border-color: #a3c6e4;
+  color: #3a5f7d;
+}
+
+.alert-warning {
+  background: #fef9ec;
+  border-color: #f0c97e;
+  color: #7a5c1e;
+}
+
+.alert-success {
+  background: #edf7ef;
+  border-color: #7dbf8e;
+  color: #2e5c3c;
+}
+
+.alert-danger {
+  background: #fdf0ee;
+  border-color: #e59a8d;
+  color: #7a3a30;
+}
+
+/* ── 響應式補強（< 768px） ── */
+@media (max-width: 767.98px) {
+  .main-card {
+    padding: 1rem;
+  }
+
+  .hide-sm {
+    display: none !important;
+  }
+}

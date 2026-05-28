@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>分類 — Daily Ledger</title>
+  <link rel="stylesheet" href="./lib/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="./lib/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dl mb-4">
+    <div class="container">
+      <span class="navbar-brand"><i class="bi bi-journal-text"></i> Daily Ledger</span>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="./index.html" data-page="index"><i
+                class="bi bi-pencil-square"></i> 記帳</a></li>
+          <li class="nav-item"><a class="nav-link" href="./list.html" data-page="list"><i class="bi bi-list-ul"></i>
+              列表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./report.html" data-page="report"><i
+                class="bi bi-bar-chart"></i> 報表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./categories.html" data-page="categories"><i
+                class="bi bi-tags"></i> 分類</a></li>
+          <li class="nav-item"><a class="nav-link" href="./import.html" data-page="import"><i
+                class="bi bi-box-arrow-in-down"></i> 匯入</a></li>
+          <li class="nav-item"><a class="nav-link" href="./export.html" data-page="export"><i
+                class="bi bi-box-arrow-up"></i> 匯出</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Toast 容器 -->
+  <div id="toastContainer"></div>
+
+  <div class="container" style="max-width: 800px;">
+    <h5 class="mb-3"><i class="bi bi-tags"></i> 分類管理</h5>
+
+    <!-- 新增分類 -->
+    <div class="main-card mb-3">
+      <span class="section-title">新增分類</span>
+      <div class="row g-2 align-items-end mt-1">
+        <div class="col-auto">
+          <label class="form-label small fw-semibold mb-1">類型</label>
+          <div class="btn-group type-group" role="group">
+            <input type="radio" class="btn-check" name="addType" id="addTypeE" value="E" autocomplete="off" checked>
+            <label class="btn btn-outline-danger btn-sm" for="addTypeE">支出</label>
+            <input type="radio" class="btn-check" name="addType" id="addTypeI" value="I" autocomplete="off">
+            <label class="btn btn-outline-success btn-sm" for="addTypeI">收入</label>
+          </div>
+        </div>
+        <div class="col-5 col-md-3">
+          <label class="form-label small fw-semibold mb-1" for="addMain">主類</label>
+          <input type="text" id="addMain" class="form-control form-control-sm" placeholder="如：餐飲費" maxlength="30">
+        </div>
+        <div class="col-5 col-md-3">
+          <label class="form-label small fw-semibold mb-1" for="addSub">次類（選填）</label>
+          <input type="text" id="addSub" class="form-control form-control-sm" placeholder="如：早餐" maxlength="30">
+        </div>
+        <div class="col-auto">
+          <button id="btnAdd" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> 新增
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 類型 Tab -->
+    <ul class="nav nav-tabs mb-3" id="typeTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tabE" data-type="E" type="button" role="tab">
+          <i class="bi bi-arrow-down-circle text-danger"></i> 支出
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tabI" data-type="I" type="button" role="tab">
+          <i class="bi bi-arrow-up-circle text-success"></i> 收入
+        </button>
+      </li>
+    </ul>
+
+    <!-- 分類列表 -->
+    <div class="main-card">
+      <div id="catList">
+        <div class="text-center text-muted py-3">載入中…</div>
+      </div>
+    </div>
+
+  </div><!-- /.container -->
+
+  <!-- ── 刪除確認 Modal ── -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalLabel"><i class="bi bi-trash text-danger"></i> 確認刪除</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">確定要刪除此分類嗎？此操作無法復原。</p>
+          <div id="deletePreview" class="bg-light rounded p-2 small fw-semibold"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-danger btn-sm" id="btnConfirmDelete">
+            <i class="bi bi-trash"></i> 確認刪除
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 改名 Modal ── -->
+  <div class="modal fade" id="renameModal" tabindex="-1" aria-labelledby="renameModalLabel">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="renameModalLabel"><i class="bi bi-pencil"></i> 改名</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            來源：<span id="renameSourceLabel" class="fw-semibold text-dark"></span>
+          </p>
+          <div id="renameMainGroup" class="mb-3">
+            <label class="form-label fw-semibold small" for="renameNewMain">新主類名稱</label>
+            <input type="text" id="renameNewMain" class="form-control" maxlength="30">
+          </div>
+          <div id="renameSubGroup" class="mb-2">
+            <label class="form-label fw-semibold small" for="renameNewSub">新次類名稱</label>
+            <input type="text" id="renameNewSub" class="form-control" maxlength="30">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmRename">
+            <i class="bi bi-check-circle"></i> 確認
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 合併分類 Modal ── -->
+  <div class="modal fade" id="mergeModal" tabindex="-1" aria-labelledby="mergeModalLabel">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="mergeModalLabel"><i class="bi bi-arrow-left-right"></i> 合併分類</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">將來源分類的所有交易改為目標分類，並刪除來源分類。</p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small" for="mergeSrc">來源分類（將被刪除）</label>
+            <select id="mergeSrc" class="form-select"></select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small" for="mergeDst">目標分類（保留）</label>
+            <select id="mergeDst" class="form-select"></select>
+          </div>
+          <div id="mergeImpact" class="alert alert-warning small py-2 mb-0" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-warning" id="btnConfirmMerge">
+            <i class="bi bi-arrow-left-right"></i> 確認合併
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./lib/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/format.js"></script>
+  <script src="./js/toast.js"></script>
+  <script src="./js/navbar.js"></script>
+  <script>
+    // ── 狀態 ──
+    let allCategories = [];
+    let currentType = "E";
+    let pendingDelete = null; // { type, main, sub }
+    let pendingRename = null; // { type, main, sub, isSubRename }
+
+    // ── 載入分類 ──
+    async function loadCategories() {
+      try {
+        allCategories = await api.get("/api/categories?include_count=1");
+        renderList();
+      } catch (e) {
+        document.getElementById("catList").innerHTML =
+          `<div class="text-danger text-center py-3">${fmt.escHtml(e.message)}</div>`;
+      }
+    }
+
+    // ── 按主類分組（依 sort_order 排序） ──
+    function groupByMain(type) {
+      const filtered = allCategories.filter(c => c["類型"] === type);
+      const order = [];
+      const groups = {};
+      filtered.forEach(c => {
+        const m = c["主類"];
+        if (!groups[m]) { groups[m] = []; order.push(m); }
+        groups[m].push(c);
+      });
+      // API 回傳已依 sort_order 排序，主類出現順序即為排序結果
+      // 次類在各組內也已依 sort_order 排序
+      return order.map(m => ({ main: m, items: groups[m] }));
+    }
+
+    // ── 渲染分類列表 ──
+    function renderList() {
+      const container = document.getElementById("catList");
+      const groups = groupByMain(currentType);
+
+      if (groups.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-3">尚無分類，請在上方新增</div>';
+        return;
+      }
+
+      const totalGroups = groups.length;
+      container.innerHTML = groups.map((g, idx) => {
+        const subItems = g.items.filter(c => c["次類"] !== "");
+        const mainLeafItem = g.items.find(c => c["次類"] === ""); // 主類本身（無次類）的條目
+        const hasSubs = subItems.length > 0;
+        const mainCount = g.items.reduce((s, c) => s + (c.count || 0), 0);
+        const type = fmt.escHtml(currentType);
+        const mainE = fmt.escHtml(g.main);
+        const isFirstMain = idx === 0;
+        const isLastMain = idx === totalGroups - 1;
+
+        // 主類排序按鈕
+        const mainSortBtns = `
+          <button class="btn btn-sm btn-outline-secondary py-0 px-1 btn-reorder"
+                  data-type="${type}" data-main="${mainE}" data-sub="" data-dir="up"
+                  ${isFirstMain ? "disabled" : ""} title="上移">
+            <i class="bi bi-arrow-up"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-1 btn-reorder"
+                  data-type="${type}" data-main="${mainE}" data-sub="" data-dir="down"
+                  ${isLastMain ? "disabled" : ""} title="下移">
+            <i class="bi bi-arrow-down"></i>
+          </button>`;
+
+        let mainRowHtml;
+        if (hasSubs) {
+          mainRowHtml = `
+        <div class="d-flex align-items-center gap-2 p-2 rounded cat-main-row">
+          <button class="btn btn-sm btn-link p-0 text-secondary text-decoration-none"
+                  data-bs-toggle="collapse" data-bs-target="#subs-${idx}"
+                  aria-expanded="true" aria-controls="subs-${idx}">
+            <i class="bi bi-chevron-down"></i>
+          </button>
+          <span class="fw-semibold flex-grow-1">${mainE}</span>
+          <span class="badge bg-secondary text-nowrap">引用 ${mainCount} 筆</span>
+          ${mainSortBtns}
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2 btn-open-merge"
+                  data-type="${type}" data-main="${mainE}">
+            <i class="bi bi-arrow-left-right"></i> 合併
+          </button>
+        </div>`;
+        } else {
+          const canDel = mainCount === 0;
+          mainRowHtml = `
+        <div class="d-flex align-items-center gap-2 p-2 rounded cat-main-row">
+          <span class="fw-semibold flex-grow-1">${mainE}</span>
+          <span class="badge bg-secondary text-nowrap">引用 ${mainCount} 筆</span>
+          ${mainSortBtns}
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2 btn-rename"
+                  data-type="${type}" data-main="${mainE}" data-sub="">
+            <i class="bi bi-pencil"></i> 改名
+          </button>
+          <button class="btn btn-sm btn-outline-danger py-0 px-2 btn-delete"
+                  data-type="${type}" data-main="${mainE}" data-sub=""
+                  ${canDel ? "" : 'disabled title="仍有交易引用"'}>
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>`;
+        }
+
+        // ── 次類列表 ──
+        let subsHtml = "";
+        if (hasSubs) {
+          const mainLeafHtml = mainLeafItem ? (() => {
+            const canDel = (mainLeafItem.count || 0) === 0;
+            return `
+          <div class="d-flex align-items-center gap-2 py-1 px-2 cat-sub-row">
+            <span class="flex-grow-1 text-secondary small fst-italic">
+              <i class="bi bi-dash"></i> （無次類）
+            </span>
+            <span class="badge bg-light text-dark text-nowrap">引用 ${mainLeafItem.count || 0} 筆</span>
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2 btn-rename"
+                    data-type="${type}" data-main="${mainE}" data-sub="">
+              <i class="bi bi-pencil"></i> 改名
+            </button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-2 btn-delete"
+                    data-type="${type}" data-main="${mainE}" data-sub=""
+                    ${canDel ? "" : 'disabled title="仍有交易引用"'}>
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>`;
+          })() : "";
+
+          const totalSubs = subItems.length;
+          subsHtml = `
+        <div class="collapse show mt-1" id="subs-${idx}">
+          ${mainLeafHtml}
+          ${subItems.map((c, si) => {
+            const canDel = (c.count || 0) === 0;
+            const subE = fmt.escHtml(c["次類"]);
+            const isFirstSub = si === 0;
+            const isLastSub = si === totalSubs - 1;
+            return `
+              <div class="d-flex align-items-center gap-2 py-1 px-2 cat-sub-row">
+                <span class="flex-grow-1 text-secondary small">
+                  <i class="bi bi-arrow-return-right"></i> ${subE}
+                </span>
+                <span class="badge bg-light text-dark text-nowrap">引用 ${c.count || 0} 筆</span>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-1 btn-reorder"
+                        data-type="${type}" data-main="${mainE}" data-sub="${subE}" data-dir="up"
+                        ${isFirstSub ? "disabled" : ""} title="上移">
+                  <i class="bi bi-arrow-up"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-1 btn-reorder"
+                        data-type="${type}" data-main="${mainE}" data-sub="${subE}" data-dir="down"
+                        ${isLastSub ? "disabled" : ""} title="下移">
+                  <i class="bi bi-arrow-down"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2 btn-rename"
+                        data-type="${type}" data-main="${mainE}" data-sub="${subE}">
+                  <i class="bi bi-pencil"></i> 改名
+                </button>
+                <button class="btn btn-sm btn-outline-danger py-0 px-2 btn-delete"
+                        data-type="${type}" data-main="${mainE}" data-sub="${subE}"
+                        ${canDel ? "" : 'disabled title="仍有交易引用"'}>
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>`;
+          }).join("")}
+        </div>`;
+        }
+
+        return `<div class="mb-2">${mainRowHtml}${subsHtml}</div>`;
+      }).join("");
+    }
+
+    // ── Tab 切換 ──
+    document.querySelectorAll("#typeTabs button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#typeTabs button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentType = btn.dataset.type;
+        renderList();
+      });
+    });
+
+    // ── 事件委派：刪除 / 改名 / 合併 / 排序 ──
+    document.getElementById("catList").addEventListener("click", (e) => {
+      const delBtn = e.target.closest(".btn-delete");
+      const renameBtn = e.target.closest(".btn-rename");
+      const mergeBtn = e.target.closest(".btn-open-merge");
+      const reorderBtn = e.target.closest(".btn-reorder");
+      // 注意：disabled 按鈕本身不觸發 click，但點擊其內部 <i> 時事件仍冒泡，
+      // 因此必須明確排除 disabled 狀態，防止刪除 Modal 被繞過。
+      if (delBtn && !delBtn.disabled) openDeleteModal(delBtn.dataset.type, delBtn.dataset.main, delBtn.dataset.sub);
+      if (renameBtn && !renameBtn.disabled) openRenameModal(renameBtn.dataset.type, renameBtn.dataset.main, renameBtn.dataset.sub);
+      if (mergeBtn) openMergeModal();
+      if (reorderBtn && !reorderBtn.disabled) doReorder(reorderBtn);
+    });
+
+    // ── 排序 ──
+    async function doReorder(btn) {
+      btn.disabled = true;
+      try {
+        await api.post("/api/categories/reorder", {
+          "類型": btn.dataset.type,
+          "主類": btn.dataset.main,
+          "次類": btn.dataset.sub,
+          "direction": btn.dataset.dir,
+        });
+        await loadCategories();
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── 刪除 Modal ──
+    function openDeleteModal(type, main, sub) {
+      pendingDelete = { type, main, sub };
+      const label = sub ? `${main} / ${sub}` : main;
+      document.getElementById("deletePreview").textContent = `${fmt.typeLabel(type)} > ${label}`;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("deleteModal")).show();
+    }
+
+    document.getElementById("btnConfirmDelete").addEventListener("click", async () => {
+      if (!pendingDelete) return;
+      const btn = document.getElementById("btnConfirmDelete");
+      btn.disabled = true;
+      try {
+        await api.delete("/api/categories", {
+          "類型": pendingDelete.type,
+          "主類": pendingDelete.main,
+          "次類": pendingDelete.sub,
+        });
+        bootstrap.Modal.getInstance(document.getElementById("deleteModal")).hide();
+        toast.success("已刪除分類");
+        pendingDelete = null;
+        await loadCategories();
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ── 改名 Modal ──
+    function openRenameModal(type, main, sub) {
+      pendingRename = { type, main, sub, isSubRename: sub !== "" };
+      const label = sub ? `${main} / ${sub}` : main;
+      document.getElementById("renameSourceLabel").textContent = `${fmt.typeLabel(type)} > ${label}`;
+
+      if (pendingRename.isSubRename) {
+        // 改次類名：主類固定，只編輯次類
+        document.getElementById("renameMainGroup").style.display = "none";
+        document.getElementById("renameSubGroup").style.display = "";
+        document.getElementById("renameNewSub").value = sub;
+      } else {
+        // 改主類名（無次類葉節點）：只編輯主類
+        document.getElementById("renameMainGroup").style.display = "";
+        document.getElementById("renameSubGroup").style.display = "none";
+        document.getElementById("renameNewMain").value = main;
+      }
+
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("renameModal")).show();
+    }
+
+    document.getElementById("btnConfirmRename").addEventListener("click", async () => {
+      if (!pendingRename) return;
+      const { type, main, sub, isSubRename } = pendingRename;
+
+      let dstMain, dstSub;
+      if (isSubRename) {
+        dstSub = document.getElementById("renameNewSub").value.trim();
+        dstMain = main;
+        if (!dstSub) { toast.error("請輸入新次類名稱"); return; }
+        if (dstSub === sub) { toast.error("名稱未改變"); return; }
+      } else {
+        dstMain = document.getElementById("renameNewMain").value.trim();
+        dstSub = sub;
+        if (!dstMain) { toast.error("請輸入新主類名稱"); return; }
+        if (dstMain === main) { toast.error("名稱未改變"); return; }
+      }
+
+      const btn = document.getElementById("btnConfirmRename");
+      btn.disabled = true;
+      try {
+        // 目標不存在時先建立；若後端已存在（快照過期）則忽略 409 直接繼續 merge
+        const exists = allCategories.some(c =>
+          c["類型"] === type && c["主類"] === dstMain && c["次類"] === dstSub
+        );
+        if (!exists) {
+          try {
+            await api.post("/api/categories", { "類型": type, "主類": dstMain, "次類": dstSub });
+          } catch (e) {
+            if (!e.message.includes("已存在")) throw e;
+            // 目標分類已在後端存在（本機快照過舊），直接進行合併
+          }
+        }
+        // 執行合併（改名 = merge 到新分類）
+        const result = await api.post("/api/categories/merge", {
+          "來源類型": type, "來源主類": main, "來源次類": sub,
+          "目標類型": type, "目標主類": dstMain, "目標次類": dstSub,
+        });
+        bootstrap.Modal.getInstance(document.getElementById("renameModal")).hide();
+        toast.success(`已改名，更新 ${result.updated} 筆交易`);
+        pendingRename = null;
+        await loadCategories();
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ── 合併 Modal ──
+    // 使用 index 作為 option value，避免分類名稱含特殊分隔符導致的解析錯誤
+    let _mergeCats = []; // openMergeModal 時快照的分類清單
+
+    function catOptionLabel(c) {
+      return c["次類"] ? `${c["主類"]} / ${c["次類"]}` : c["主類"];
+    }
+
+    function openMergeModal() {
+      _mergeCats = allCategories.filter(c => c["類型"] === currentType);
+      const opts = _mergeCats.map((c, i) =>
+        `<option value="${i}">${fmt.escHtml(catOptionLabel(c))}</option>`
+      ).join("");
+      document.getElementById("mergeSrc").innerHTML = opts;
+      document.getElementById("mergeDst").innerHTML = opts;
+      document.getElementById("mergeImpact").style.display = "none";
+      updateMergeImpact();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("mergeModal")).show();
+    }
+
+    function updateMergeImpact() {
+      const srcIdx = parseInt(document.getElementById("mergeSrc").value, 10);
+      const impact = document.getElementById("mergeImpact");
+      if (isNaN(srcIdx)) { impact.style.display = "none"; return; }
+      const src = _mergeCats[srcIdx];
+      if (!src) { impact.style.display = "none"; return; }
+      const count = src.count || 0;
+      const lbl = catOptionLabel(src);
+      impact.style.display = "";
+      impact.innerHTML = `<i class="bi bi-info-circle"></i> 將更新 <strong>${Number(count)}</strong> 筆交易的分類，並刪除「${fmt.escHtml(lbl)}」。`;
+    }
+
+    document.getElementById("mergeSrc").addEventListener("change", updateMergeImpact);
+
+    document.getElementById("btnConfirmMerge").addEventListener("click", async () => {
+      const srcIdx = parseInt(document.getElementById("mergeSrc").value, 10);
+      const dstIdx = parseInt(document.getElementById("mergeDst").value, 10);
+      if (isNaN(srcIdx) || isNaN(dstIdx)) { toast.error("請選擇來源與目標分類"); return; }
+      if (srcIdx === dstIdx) { toast.error("來源與目標分類不能相同"); return; }
+
+      const src = _mergeCats[srcIdx];
+      const dst = _mergeCats[dstIdx];
+      const srcMain = src["主類"]; const srcSub = src["次類"];
+      const dstMain = dst["主類"]; const dstSub = dst["次類"];
+
+      const btn = document.getElementById("btnConfirmMerge");
+      btn.disabled = true;
+      try {
+        const result = await api.post("/api/categories/merge", {
+          "來源類型": src["類型"], "來源主類": srcMain, "來源次類": srcSub,
+          "目標類型": dst["類型"], "目標主類": dstMain, "目標次類": dstSub,
+        });
+        bootstrap.Modal.getInstance(document.getElementById("mergeModal")).hide();
+        toast.success(`合併完成，已更新 ${result.updated} 筆交易`);
+        await loadCategories();
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ── 新增分類 ──
+    async function addCategory() {
+      const type = document.querySelector("input[name='addType']:checked")?.value || "E";
+      const main = document.getElementById("addMain").value.trim();
+      const sub = document.getElementById("addSub").value.trim();
+      if (!main) { toast.error("請輸入主類名稱"); return; }
+
+      const btn = document.getElementById("btnAdd");
+      btn.disabled = true;
+      try {
+        await api.post("/api/categories", { "類型": type, "主類": main, "次類": sub });
+        document.getElementById("addMain").value = "";
+        document.getElementById("addSub").value = "";
+        toast.success("已新增分類");
+        await loadCategories();
+        // 切換到剛新增的類型 tab
+        document.querySelectorAll("#typeTabs button").forEach(b =>
+          b.classList.toggle("active", b.dataset.type === type)
+        );
+        currentType = type;
+        renderList();
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById("btnAdd").addEventListener("click", addCategory);
+    ["addMain", "addSub"].forEach(id =>
+      document.getElementById(id).addEventListener("keydown", e => {
+        if (e.key === "Enter") addCategory();
+      })
+    );
+
+    // ── 初始化 ──
+    (async () => {
+      await loadCategories();
+    })();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>匯入 — Daily Ledger</title>
+  <link rel="stylesheet" href="./lib/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="./lib/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dl mb-4">
+    <div class="container">
+      <span class="navbar-brand"><i class="bi bi-journal-text"></i> Daily Ledger</span>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="./index.html" data-page="index"><i
+                class="bi bi-pencil-square"></i> 記帳</a></li>
+          <li class="nav-item"><a class="nav-link" href="./list.html" data-page="list"><i class="bi bi-list-ul"></i>
+              列表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./report.html" data-page="report"><i
+                class="bi bi-bar-chart"></i> 報表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./categories.html" data-page="categories"><i
+                class="bi bi-tags"></i> 分類</a></li>
+          <li class="nav-item"><a class="nav-link" href="./import.html" data-page="import"><i
+                class="bi bi-box-arrow-in-down"></i> 匯入</a></li>
+          <li class="nav-item"><a class="nav-link" href="./export.html" data-page="export"><i
+                class="bi bi-box-arrow-up"></i> 匯出</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Toast 容器 -->
+  <div id="toastContainer"></div>
+
+  <div class="container" style="max-width: 720px;">
+    <h5 class="mb-3"><i class="bi bi-box-arrow-in-down"></i> 匯入</h5>
+
+    <!-- 步驟指示器 -->
+    <div class="main-card mb-3">
+      <div class="d-flex align-items-center gap-3">
+        <div id="stepBadge1" class="step-badge step-active">1</div>
+        <span id="stepLabel1" class="fw-semibold">上傳檔案</span>
+        <div class="flex-fill border-top mx-2"></div>
+        <div id="stepBadge2" class="step-badge step-inactive">2</div>
+        <span id="stepLabel2" class="text-muted">預覽確認</span>
+        <div class="flex-fill border-top mx-2"></div>
+        <div id="stepBadge3" class="step-badge step-inactive">3</div>
+        <span id="stepLabel3" class="text-muted">匯入完成</span>
+      </div>
+    </div>
+
+    <!-- Step 1：上傳 -->
+    <div id="step1" class="main-card">
+      <div class="section-title mb-3">
+        <i class="bi bi-file-earmark-arrow-up"></i> 上傳 MyAB CSV 檔案
+      </div>
+      <div id="dropZone" class="drop-zone mb-3">
+        <i class="bi bi-cloud-upload display-4 text-muted d-block mb-2"></i>
+        <div class="text-muted">拖放 CSV 檔案至此，或</div>
+        <label for="fileInput" class="btn btn-outline-primary btn-sm mt-2">
+          <i class="bi bi-folder2-open"></i> 選擇檔案
+        </label>
+        <input type="file" id="fileInput" accept=".csv" class="d-none">
+        <div id="fileName" class="mt-2 text-muted small"></div>
+      </div>
+      <div class="text-muted small mb-3">
+        支援 MyAB「匯出 CSV」產生的檔案；A/L 類型（資產/負債）及無效記錄將自動過濾。
+      </div>
+      <button id="btnPreview" class="btn btn-primary w-100" disabled>
+        <i class="bi bi-eye"></i> 預覽匯入內容
+      </button>
+    </div>
+
+    <!-- Step 2：預覽 -->
+    <div id="step2" class="d-none">
+      <div class="main-card mb-3">
+        <div class="section-title mb-3">
+          <i class="bi bi-clipboard-data"></i> 匯入預覽
+        </div>
+
+        <!-- 摘要卡片 -->
+        <div class="row g-2 mb-3" id="summaryCards"></div>
+
+        <!-- 日期範圍 -->
+        <div id="dateRangeRow" class="text-muted small mb-3"></div>
+
+        <!-- 新分類 -->
+        <div id="newCatsSection" class="d-none mb-3">
+          <div class="fw-semibold small mb-2">
+            <i class="bi bi-tag"></i> 新分類（將自動新增）
+          </div>
+          <div id="newCatsList" class="border rounded p-2 bg-light"
+            style="max-height:160px;overflow-y:auto;font-size:.85rem;"></div>
+        </div>
+
+        <!-- 前 5 筆樣本 -->
+        <div id="sampleSection" class="d-none mb-3">
+          <div class="fw-semibold small mb-2">
+            <i class="bi bi-card-list"></i> 前 5 筆新交易
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>日期</th>
+                  <th>類型</th>
+                  <th>分類</th>
+                  <th class="text-end">金額</th>
+                  <th>明細</th>
+                </tr>
+              </thead>
+              <tbody id="sampleBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button id="btnBack" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 重新上傳
+          </button>
+          <button id="btnConfirm" class="btn btn-success flex-fill">
+            <i class="bi bi-check-circle"></i> 確認匯入
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3：完成 -->
+    <div id="step3" class="d-none">
+      <div class="main-card text-center">
+        <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
+        <h5 class="mt-3 mb-3">匯入完成</h5>
+        <div id="resultSummary" class="mb-4"></div>
+        <div class="d-flex gap-2 justify-content-center">
+          <button id="btnImportAgain" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-repeat"></i> 繼續匯入
+          </button>
+          <a href="./list.html" class="btn btn-primary">
+            <i class="bi bi-list-ul"></i> 查看列表
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.container -->
+
+  <script src="./lib/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/format.js"></script>
+  <script src="./js/toast.js"></script>
+  <script src="./js/navbar.js"></script>
+  <script>
+    // ── 狀態 ──
+    let _previewToken = null;
+    let _selectedFile = null;
+
+    // ── 步驟切換 ──
+    function goStep(n) {
+      document.getElementById("step1").classList.toggle("d-none", n !== 1);
+      document.getElementById("step2").classList.toggle("d-none", n !== 2);
+      document.getElementById("step3").classList.toggle("d-none", n !== 3);
+      [1, 2, 3].forEach(i => {
+        const badge = document.getElementById(`stepBadge${i}`);
+        const label = document.getElementById(`stepLabel${i}`);
+        badge.className = "step-badge " + (i <= n ? "step-active" : "step-inactive");
+        label.className = i <= n ? "fw-semibold" : "text-muted";
+      });
+    }
+
+    // ── 檔案選取 ──
+    function onFileSelected(file) {
+      if (!file) return;
+      _selectedFile = file;
+      document.getElementById("fileName").textContent = file.name;
+      document.getElementById("btnPreview").disabled = false;
+    }
+
+    const fileInput = document.getElementById("fileInput");
+    fileInput.addEventListener("change", () => onFileSelected(fileInput.files[0]));
+
+    // 拖放
+    const dropZone = document.getElementById("dropZone");
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drop-zone-over"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drop-zone-over"));
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("drop-zone-over");
+      const f = e.dataTransfer.files[0];
+      if (f) onFileSelected(f);
+    });
+
+    // ── Step 1 → 2：預覽 ──
+    document.getElementById("btnPreview").addEventListener("click", async () => {
+      if (!_selectedFile) return;
+      const btn = document.getElementById("btnPreview");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 分析中…';
+      try {
+        const form = new FormData();
+        form.append("file", _selectedFile);
+        const res = await fetch("/api/import/preview", { method: "POST", body: form });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`);
+        renderPreview(data);
+        goStep(2);
+      } catch (e) {
+        toast.error(e.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-eye"></i> 預覽匯入內容';
+      }
+    });
+
+    // ── 渲染預覽 ──
+    function renderPreview(data) {
+      _previewToken = data.preview_token;
+      const s = data.summary;
+
+      // 摘要卡片
+      document.getElementById("summaryCards").innerHTML = [
+        { label: "原始筆數", value: s.total, color: "primary" },
+        { label: "已過濾", value: s.filtered, color: "secondary" },
+        { label: "新增交易", value: s.to_import, color: "success" },
+        { label: "重複略過", value: s.duplicates, color: "warning" },
+      ].map(c => `
+    <div class="col-6 col-sm-3">
+      <div class="border rounded text-center p-2">
+        <div class="fw-bold text-${c.color} amount" style="font-size:1.4rem;">${c.value.toLocaleString()}</div>
+        <div class="text-muted" style="font-size:.75rem;">${c.label}</div>
+      </div>
+    </div>`).join("");
+
+      // 日期範圍
+      const dr = data.date_range;
+      document.getElementById("dateRangeRow").textContent =
+        dr.min ? `新交易日期範圍：${dr.min} ～ ${dr.max}` : "（無新交易）";
+
+      // 新分類
+      const nc = data.new_categories;
+      const ncSec = document.getElementById("newCatsSection");
+      if (nc && nc.length > 0) {
+        ncSec.classList.remove("d-none");
+        document.getElementById("newCatsList").innerHTML = nc.map(c => {
+          const sub = c["次類"] ? ` / ${fmt.escHtml(c["次類"])}` : "";
+          const badge = c["類型"] === "E"
+            ? '<span class="badge badge-expense me-1">支出</span>'
+            : '<span class="badge badge-income me-1">收入</span>';
+          return `<div>${badge}${fmt.escHtml(c["主類"])}${sub}</div>`;
+        }).join("");
+      } else {
+        ncSec.classList.add("d-none");
+      }
+
+      // 樣本交易
+      const samples = data.sample_transactions;
+      const sampSec = document.getElementById("sampleSection");
+      if (samples && samples.length > 0) {
+        sampSec.classList.remove("d-none");
+        document.getElementById("sampleBody").innerHTML = samples.map(t => {
+          const amtClass = t["類型"] === "I" ? "text-income" : "text-expense";
+          const sign = t["類型"] === "I" ? "+" : "−";
+          return `<tr>
+        <td class="text-nowrap">${fmt.escHtml(t["日期"])}</td>
+        <td>${fmt.typeBadge(t["類型"])}</td>
+        <td>${fmt.escHtml(fmt.categoryLabel(t["類別主類"], t["類別次類"]))}</td>
+        <td class="text-end amount ${amtClass}">${sign}${fmt.amount(t["金額"])}</td>
+        <td class="text-truncate" style="max-width:120px;">${fmt.escHtml(t["明細"])}</td>
+      </tr>`;
+        }).join("");
+      } else {
+        sampSec.classList.add("d-none");
+      }
+    }
+
+    // ── 重新上傳 ──
+    document.getElementById("btnBack").addEventListener("click", () => {
+      _previewToken = null;
+      _selectedFile = null;
+      document.getElementById("fileName").textContent = "";
+      document.getElementById("fileInput").value = "";
+      document.getElementById("btnPreview").disabled = true;
+      document.getElementById("btnPreview").innerHTML = '<i class="bi bi-eye"></i> 預覽匯入內容';
+      goStep(1);
+    });
+
+    // ── Step 2 → 3：確認匯入 ──
+    document.getElementById("btnConfirm").addEventListener("click", async () => {
+      if (!_previewToken) return;
+      const btn = document.getElementById("btnConfirm");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 匯入中…';
+      try {
+        const res = await fetch("/api/import/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ preview_token: _previewToken }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`);
+        renderResult(data);
+        goStep(3);
+      } catch (e) {
+        toast.error(e.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle"></i> 確認匯入';
+      }
+    });
+
+    // ── 渲染結果 ──
+    function renderResult(data) {
+      document.getElementById("resultSummary").innerHTML = `
+    <div class="row justify-content-center g-3">
+      <div class="col-auto">
+        <div class="border rounded text-center px-4 py-2">
+          <div class="fw-bold text-success amount" style="font-size:1.6rem;">${data.added.toLocaleString()}</div>
+          <div class="text-muted small">成功新增</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="border rounded text-center px-4 py-2">
+          <div class="fw-bold text-secondary amount" style="font-size:1.6rem;">${data.skipped.toLocaleString()}</div>
+          <div class="text-muted small">重複略過</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="border rounded text-center px-4 py-2">
+          <div class="fw-bold text-primary amount" style="font-size:1.6rem;">${data.new_categories.toLocaleString()}</div>
+          <div class="text-muted small">新增分類</div>
+        </div>
+      </div>
+    </div>`;
+    }
+
+    // ── 繼續匯入 ──
+    document.getElementById("btnImportAgain").addEventListener("click", () => {
+      _previewToken = null;
+      _selectedFile = null;
+      document.getElementById("fileName").textContent = "";
+      document.getElementById("fileInput").value = "";
+      document.getElementById("btnPreview").disabled = true;
+      document.getElementById("btnPreview").innerHTML = '<i class="bi bi-eye"></i> 預覽匯入內容';
+      goStep(1);
+    });
+
+    // ── 初始化 ──
+    goStep(1);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+daily-ledger/venv/
+daily-ledger/venv-win/
+
+# Personal financial data
+daily-ledger/data/main_db.csv
+daily-ledger/data/*.tmp
+
+# Temp files
+*.tmp

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>列表 — Daily Ledger</title>
+  <link rel="stylesheet" href="./lib/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="./lib/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dl mb-4">
+    <div class="container">
+      <span class="navbar-brand"><i class="bi bi-journal-text"></i> Daily Ledger</span>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="./index.html" data-page="index"><i
+                class="bi bi-pencil-square"></i> 記帳</a></li>
+          <li class="nav-item"><a class="nav-link" href="./list.html" data-page="list"><i class="bi bi-list-ul"></i>
+              列表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./report.html" data-page="report"><i
+                class="bi bi-bar-chart"></i> 報表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./categories.html" data-page="categories"><i
+                class="bi bi-tags"></i> 分類</a></li>
+          <li class="nav-item"><a class="nav-link" href="./import.html" data-page="import"><i
+                class="bi bi-box-arrow-in-down"></i> 匯入</a></li>
+          <li class="nav-item"><a class="nav-link" href="./export.html" data-page="export"><i
+                class="bi bi-box-arrow-up"></i> 匯出</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Toast 容器 -->
+  <div id="toastContainer"></div>
+
+  <div class="container" style="max-width: 960px;">
+    <h5 class="mb-3"><i class="bi bi-list-ul"></i> 交易列表</h5>
+
+    <!-- 篩選區 -->
+    <div class="main-card mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="section-title mb-0">篩選條件</span>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+          data-bs-target="#filterBody" aria-expanded="true" aria-controls="filterBody">
+          <i class="bi bi-funnel"></i> 收合
+        </button>
+      </div>
+      <div id="filterBody" class="collapse show">
+        <!-- 月份快捷按鈕 -->
+        <div class="d-flex gap-2 mb-2">
+          <button id="btnPrevMonth" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-chevron-left"></i> 上一月
+          </button>
+          <button id="btnThisMonth" class="btn btn-outline-secondary btn-sm active">
+            本月
+          </button>
+          <button id="btnNextMonth" class="btn btn-outline-secondary btn-sm">
+            下一月 <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold">開始日期</label>
+            <input type="date" id="fFrom" class="form-control form-control-sm">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold">結束日期</label>
+            <input type="date" id="fTo" class="form-control form-control-sm">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold">類型</label>
+            <select id="fType" class="form-select form-select-sm">
+              <option value="">全部</option>
+              <option value="E">支出</option>
+              <option value="I">收入</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold">主類</label>
+            <select id="fMain" class="form-select form-select-sm">
+              <option value="">全部</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold">次類</label>
+            <select id="fSub" class="form-select form-select-sm">
+              <option value="">全部</option>
+            </select>
+          </div>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-4">
+            <label class="form-label small fw-semibold">關鍵字</label>
+            <input type="text" id="fKeyword" class="form-control form-control-sm" placeholder="明細或備註">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold">金額下限</label>
+            <input type="number" id="fAmtMin" class="form-control form-control-sm" min="0" placeholder="0">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold">金額上限</label>
+            <input type="number" id="fAmtMax" class="form-control form-control-sm" min="0" placeholder="不限">
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <button id="btnApply" class="btn btn-primary btn-sm">
+            <i class="bi bi-search"></i> 套用篩選
+          </button>
+          <button id="btnReset" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-x-circle"></i> 清除篩選
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 摘要列 -->
+    <div class="summary-bar d-flex flex-wrap gap-3 mb-3" id="summaryBar">
+      <span class="text-muted small">載入中…</span>
+    </div>
+
+    <!-- 交易表格 -->
+    <div class="main-card">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>類型</th>
+              <th>分類</th>
+              <th class="text-end">金額</th>
+              <th class="hide-sm">明細</th>
+              <th class="hide-sm">備註</th>
+              <th style="width:90px;"></th>
+            </tr>
+          </thead>
+          <tbody id="txBody">
+            <tr>
+              <td colspan="7" class="text-center text-muted py-3">載入中…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 分頁 -->
+      <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top" id="paginationBar">
+        <button id="btnPrev" class="btn btn-outline-secondary btn-sm" disabled>
+          <i class="bi bi-chevron-left"></i> 上一頁
+        </button>
+        <span id="pageInfo" class="text-muted small"></span>
+        <button id="btnNext" class="btn btn-outline-secondary btn-sm" disabled>
+          下一頁 <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /.container -->
+
+  <!-- ── 編輯 Modal ── -->
+  <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editModalLabel"><i class="bi bi-pencil"></i> 編輯交易</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editId">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">日期</label>
+            <input type="date" id="editDate" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <div class="btn-group type-group w-100" role="group">
+              <input type="radio" class="btn-check" name="editType" id="editTypeE" value="E" autocomplete="off">
+              <label class="btn btn-outline-danger" for="editTypeE">
+                <i class="bi bi-arrow-down-circle"></i> 支出
+              </label>
+              <input type="radio" class="btn-check" name="editType" id="editTypeI" value="I" autocomplete="off">
+              <label class="btn btn-outline-success" for="editTypeI">
+                <i class="bi bi-arrow-up-circle"></i> 收入
+              </label>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold small">主類</label>
+              <select id="editMain" class="form-select" required>
+                <option value="">— 選擇主類 —</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold small">次類</label>
+              <select id="editSub" class="form-select">
+                <option value="">(無)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">金額</label>
+            <div class="input-group">
+              <span class="input-group-text">NT$</span>
+              <input type="number" id="editAmount" class="form-control amount" min="1" step="1" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">明細</label>
+            <input type="text" id="editDetail" class="form-control" maxlength="200">
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label fw-semibold small">備註</label>
+            <input type="text" id="editNote" class="form-control" maxlength="200">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" id="btnSaveEdit">
+            <i class="bi bi-check-circle"></i> 儲存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 刪除確認 Modal ── -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalLabel"><i class="bi bi-trash text-danger"></i> 確認刪除</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">確定要刪除這筆交易嗎？此操作無法復原。</p>
+          <div id="deletePreview" class="bg-light rounded p-2 small text-muted"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-danger btn-sm" id="btnConfirmDelete">
+            <i class="bi bi-trash"></i> 確認刪除
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./lib/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/format.js"></script>
+  <script src="./js/toast.js"></script>
+  <script src="./js/navbar.js"></script>
+  <script>
+    // ── 狀態 ──
+    let allCategories = [];
+    let currentPage = 1;
+    let totalPages = 1;
+    let pendingDeleteId = null;
+
+    // ── 日期工具 ──
+    function todayStr() { return new Date().toLocaleDateString("sv"); }
+    const pad2 = n => String(n).padStart(2, "0");
+
+    function monthStart() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-01`;
+    }
+    function monthEnd() {
+      const d = new Date();
+      const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(last)}`;
+    }
+
+    // ── 月份快捷按鈕 ──
+    let _monthOffset = 0; // 0=本月, -1=上一月, 1=下一月
+
+    function setMonthRange(offset) {
+      _monthOffset = offset;
+      const now = new Date();
+      const target = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+      const first = `${target.getFullYear()}-${pad2(target.getMonth() + 1)}-01`;
+      const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+      const last = `${target.getFullYear()}-${pad2(target.getMonth() + 1)}-${pad2(lastDay)}`;
+
+      document.getElementById("fFrom").value = first;
+      document.getElementById("fTo").value = last;
+
+      // 更新按鈕 active 狀態
+      updateMonthBtnActive(offset);
+      loadList(1);
+    }
+
+    function updateMonthBtnActive(offset) {
+      document.getElementById("btnPrevMonth").classList.toggle("active", offset === -1);
+      document.getElementById("btnThisMonth").classList.toggle("active", offset === 0);
+      document.getElementById("btnNextMonth").classList.toggle("active", offset === 1);
+    }
+
+    function clearMonthBtnActive() {
+      document.getElementById("btnPrevMonth").classList.remove("active");
+      document.getElementById("btnThisMonth").classList.remove("active");
+      document.getElementById("btnNextMonth").classList.remove("active");
+    }
+
+    document.getElementById("btnPrevMonth").addEventListener("click", () => setMonthRange(_monthOffset - 1));
+    document.getElementById("btnThisMonth").addEventListener("click", () => setMonthRange(0));
+    document.getElementById("btnNextMonth").addEventListener("click", () => setMonthRange(_monthOffset + 1));
+
+    // 手動修改日期時清除按鈕 active 狀態
+    document.getElementById("fFrom").addEventListener("change", clearMonthBtnActive);
+    document.getElementById("fTo").addEventListener("change", clearMonthBtnActive);
+
+    // ── 收集篩選參數 ──
+    function collectFilters() {
+      const p = new URLSearchParams();
+      const from = document.getElementById("fFrom").value;
+      const to = document.getElementById("fTo").value;
+      const type = document.getElementById("fType").value;
+      const main = document.getElementById("fMain").value;
+      const sub = document.getElementById("fSub").value;
+      const kw = document.getElementById("fKeyword").value.trim();
+      const amin = document.getElementById("fAmtMin").value;
+      const amax = document.getElementById("fAmtMax").value;
+      if (from) p.set("from", from);
+      if (to) p.set("to", to);
+      if (type) p.set("type", type);
+      if (main) p.set("category_main", main);
+      if (sub) p.set("category_sub", sub);
+      if (kw) p.set("keyword", kw);
+      if (amin) p.set("amount_min", amin);
+      if (amax) p.set("amount_max", amax);
+      return p;
+    }
+
+    // ── 載入交易列表 ──
+    async function loadList(page = 1) {
+      currentPage = page;
+      const params = collectFilters();
+
+      // 驗證金額範圍
+      const amin = params.get("amount_min");
+      const amax = params.get("amount_max");
+      if (amin && amax && parseInt(amin, 10) > parseInt(amax, 10)) {
+        toast.error("金額下限不能大於上限");
+        return;
+      }
+
+      params.set("page", page);
+      params.set("size", 100);
+
+      try {
+        const data = await api.get(`/api/transactions?${params}`);
+        renderSummary(data.summary);
+        renderTable(data.items);
+        renderPagination(data.page, data.pages, data.total);
+        totalPages = data.pages;
+      } catch (e) {
+        document.getElementById("txBody").innerHTML =
+          `<tr><td colspan="7" class="text-danger text-center py-3">${fmt.escHtml(e.message)}</td></tr>`;
+      }
+    }
+
+    // ── 摘要列 ──
+    function renderSummary(s) {
+      const bar = document.getElementById("summaryBar");
+      const netClass = s.net >= 0 ? "text-net" : "text-expense";
+      bar.innerHTML = `
+    <span class="fw-semibold">共 ${s.total_count} 筆</span>
+    <span class="text-muted">|</span>
+    <span>收入 <span class="amount text-income fw-semibold">+${fmt.amount(s.total_income)}</span></span>
+    <span class="text-muted">|</span>
+    <span>支出 <span class="amount text-expense fw-semibold">${fmt.amount(s.total_expense)}</span></span>
+    <span class="text-muted">|</span>
+    <span>淨額 <span class="amount ${netClass} fw-semibold">${s.net >= 0 ? "+" : ""}${fmt.amount(s.net)}</span></span>`;
+    }
+
+    // ── 表格 ──
+    function renderTable(items) {
+      const tbody = document.getElementById("txBody");
+      if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">無符合條件的記錄</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map(t => {
+        const amtClass = t["類型"] === "I" ? "text-income" : "text-expense";
+        const sign = t["類型"] === "I" ? "+" : "−";
+        const cat = fmt.escHtml(fmt.categoryLabel(t["類別主類"], t["類別次類"]));
+        return `<tr data-id="${fmt.escHtml(t.id)}">
+      <td class="text-nowrap">${fmt.escHtml(t["日期"])}</td>
+      <td>${fmt.typeBadge(t["類型"])}</td>
+      <td>${cat}</td>
+      <td class="text-end amount ${amtClass} text-nowrap">${sign}${fmt.amount(t["金額"])}</td>
+      <td class="hide-sm text-muted small">${fmt.escHtml(t["明細"])}</td>
+      <td class="hide-sm text-muted small">${fmt.escHtml(t["備註"])}</td>
+      <td class="text-nowrap">
+        <button class="btn btn-sm btn-outline-secondary py-0 px-1 me-1 btn-edit" data-id="${fmt.escHtml(t.id)}" title="編輯">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger py-0 px-1 btn-delete" data-id="${fmt.escHtml(t.id)}" title="刪除">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    </tr>`;
+      }).join("");
+    }
+
+    // ── 分頁 ──
+    function renderPagination(page, pages, total) {
+      document.getElementById("btnPrev").disabled = (page <= 1);
+      document.getElementById("btnNext").disabled = (page >= pages);
+      document.getElementById("pageInfo").textContent =
+        total > 0 ? `第 ${page} / ${pages} 頁（共 ${total} 筆）` : "";
+    }
+
+    // ── 篩選下拉（篩選區）──
+    function buildFilterMain() {
+      const type = document.getElementById("fType").value;
+      const mains = [...new Set(
+        allCategories
+          .filter(c => !type || c["類型"] === type)
+          .map(c => c["主類"])
+      )];
+      const sel = document.getElementById("fMain");
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">全部</option>' +
+        mains.map(m => `<option value="${fmt.escHtml(m)}">${fmt.escHtml(m)}</option>`).join("");
+      sel.value = mains.includes(prev) ? prev : "";
+      buildFilterSub();
+    }
+
+    function buildFilterSub() {
+      const type = document.getElementById("fType").value;
+      const main = document.getElementById("fMain").value;
+      const subs = [...new Set(
+        allCategories
+          .filter(c => (!type || c["類型"] === type) && (!main || c["主類"] === main) && c["次類"] !== "")
+          .map(c => c["次類"])
+      )];
+      const sel = document.getElementById("fSub");
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">全部</option>' +
+        subs.map(s => `<option value="${fmt.escHtml(s)}">${fmt.escHtml(s)}</option>`).join("");
+      sel.value = subs.includes(prev) ? prev : "";
+    }
+
+    document.getElementById("fType").addEventListener("change", buildFilterMain);
+    document.getElementById("fMain").addEventListener("change", buildFilterSub);
+
+    // Enter 鍵觸發篩選
+    ["fKeyword", "fAmtMin", "fAmtMax", "fFrom", "fTo"].forEach(id =>
+      document.getElementById(id).addEventListener("keydown", e => {
+        if (e.key === "Enter") loadList(1);
+      })
+    );
+
+    // ── 套用 / 清除篩選 ──
+    document.getElementById("btnApply").addEventListener("click", () => loadList(1));
+    document.getElementById("btnReset").addEventListener("click", () => {
+      document.getElementById("fType").value = "";
+      document.getElementById("fMain").value = "";
+      document.getElementById("fSub").value = "";
+      document.getElementById("fKeyword").value = "";
+      document.getElementById("fAmtMin").value = "";
+      document.getElementById("fAmtMax").value = "";
+      buildFilterMain();
+      setMonthRange(0);
+    });
+
+    // ── 分頁按鈕 ──
+    document.getElementById("btnPrev").addEventListener("click", () => loadList(currentPage - 1));
+    document.getElementById("btnNext").addEventListener("click", () => loadList(currentPage + 1));
+
+    // ── 編輯 / 刪除按鈕（事件委派）──
+    document.getElementById("txBody").addEventListener("click", async (e) => {
+      const editBtn = e.target.closest(".btn-edit");
+      const deleteBtn = e.target.closest(".btn-delete");
+      if (editBtn) openEditModal(editBtn.dataset.id);
+      if (deleteBtn) openDeleteModal(deleteBtn.dataset.id);
+    });
+
+    // ── 編輯 Modal ──
+    function getEditType() {
+      return document.querySelector("input[name='editType']:checked")?.value || "E";
+    }
+
+    function buildEditMain(type, selectedMain) {
+      const mains = [...new Set(
+        allCategories.filter(c => c["類型"] === type).map(c => c["主類"])
+      )];
+      const sel = document.getElementById("editMain");
+      sel.innerHTML = '<option value="">— 選擇主類 —</option>' +
+        mains.map(m => `<option value="${fmt.escHtml(m)}"${m === selectedMain ? " selected" : ""}>${fmt.escHtml(m)}</option>`).join("");
+      buildEditSub(type, sel.value, "");
+    }
+
+    function buildEditSub(type, main, selectedSub) {
+      const subs = allCategories
+        .filter(c => c["類型"] === type && c["主類"] === main && c["次類"] !== "")
+        .map(c => c["次類"]);
+      const sel = document.getElementById("editSub");
+      sel.innerHTML = '<option value="">(無)</option>' +
+        subs.map(s => `<option value="${fmt.escHtml(s)}"${s === selectedSub ? " selected" : ""}>${fmt.escHtml(s)}</option>`).join("");
+    }
+
+    document.querySelectorAll("input[name='editType']").forEach(r =>
+      r.addEventListener("change", () => buildEditMain(getEditType(), ""))
+    );
+    document.getElementById("editMain").addEventListener("change", () =>
+      buildEditSub(getEditType(), document.getElementById("editMain").value, "")
+    );
+
+    async function openEditModal(id) {
+      let t;
+      try {
+        t = await api.get(`/api/transactions/${id}`);
+      } catch (e) {
+        toast.error("無法載入交易：" + e.message);
+        return;
+      }
+      document.getElementById("editId").value = t.id;
+      document.getElementById("editDate").value = t["日期"];
+      document.getElementById("editAmount").value = t["金額"];
+      document.getElementById("editDetail").value = t["明細"];
+      document.getElementById("editNote").value = t["備註"];
+
+      // 設定類型 radio
+      const typeRadio = document.getElementById(t["類型"] === "I" ? "editTypeI" : "editTypeE");
+      typeRadio.checked = true;
+
+      // 建立下拉並選中原值
+      buildEditMain(t["類型"], t["類別主類"]);
+      buildEditSub(t["類型"], t["類別主類"], t["類別次類"]);
+
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("editModal")).show();
+    }
+
+    document.getElementById("btnSaveEdit").addEventListener("click", async () => {
+      const id = document.getElementById("editId").value;
+      const date = document.getElementById("editDate").value;
+      const type = getEditType();
+      const main = document.getElementById("editMain").value;
+      const sub = document.getElementById("editSub").value;
+      const amt = parseInt(document.getElementById("editAmount").value, 10);
+
+      if (!date) { toast.error("請選擇日期"); return; }
+      if (!main) { toast.error("請選擇主類"); return; }
+      if (!amt || amt <= 0) { toast.error("請輸入有效金額"); return; }
+
+      const btn = document.getElementById("btnSaveEdit");
+      btn.disabled = true;
+      try {
+        await api.put(`/api/transactions/${id}`, {
+          "日期": date, "類型": type, "類別主類": main, "類別次類": sub,
+          "金額": amt,
+          "明細": document.getElementById("editDetail").value.trim(),
+          "備註": document.getElementById("editNote").value.trim(),
+        });
+        bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
+        toast.success("已儲存");
+        await loadList(currentPage);
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ── 刪除 Modal ──
+    async function openDeleteModal(id) {
+      let t;
+      try {
+        t = await api.get(`/api/transactions/${id}`);
+      } catch (e) {
+        toast.error("無法載入交易：" + e.message);
+        return;
+      }
+      pendingDeleteId = id;
+      const amtSign = t["類型"] === "I" ? "+" : "−";
+      document.getElementById("deletePreview").innerHTML =
+        `${fmt.escHtml(t["日期"])} &nbsp; ${fmt.typeBadge(t["類型"])} &nbsp;
+     ${fmt.escHtml(fmt.categoryLabel(t["類別主類"], t["類別次類"]))} &nbsp;
+     <span class="amount">${amtSign}${fmt.amount(t["金額"])}</span>
+     ${t["明細"] ? `<br>${fmt.escHtml(t["明細"])}` : ""}`;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("deleteModal")).show();
+    }
+
+    document.getElementById("btnConfirmDelete").addEventListener("click", async () => {
+      if (!pendingDeleteId) return;
+      const btn = document.getElementById("btnConfirmDelete");
+      btn.disabled = true;
+      try {
+        await api.delete(`/api/transactions/${pendingDeleteId}`);
+        bootstrap.Modal.getInstance(document.getElementById("deleteModal")).hide();
+        toast.success("已刪除");
+        pendingDeleteId = null;
+        // 若刪除後當頁變空，退回上一頁
+        await loadList(currentPage > 1 && document.querySelectorAll("#txBody tr[data-id]").length === 1
+          ? currentPage - 1 : currentPage);
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ── 初始化 ──
+    (async () => {
+      try {
+        allCategories = await api.get("/api/categories");
+        buildFilterMain();
+      } catch (e) {
+        toast.error("無法載入分類：" + e.message);
+      }
+      setMonthRange(0);
+    })();
+  </script>
+</body>
+
+</html>

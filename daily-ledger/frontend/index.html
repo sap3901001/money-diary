@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>記帳 — Daily Ledger</title>
+  <link rel="stylesheet" href="./lib/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="./lib/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dl mb-4">
+    <div class="container">
+      <span class="navbar-brand">
+        <i class="bi bi-journal-text"></i> Daily Ledger
+      </span>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="./index.html" data-page="index"><i
+                class="bi bi-pencil-square"></i> 記帳</a></li>
+          <li class="nav-item"><a class="nav-link" href="./list.html" data-page="list"><i class="bi bi-list-ul"></i>
+              列表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./report.html" data-page="report"><i
+                class="bi bi-bar-chart"></i> 報表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./categories.html" data-page="categories"><i
+                class="bi bi-tags"></i> 分類</a></li>
+          <li class="nav-item"><a class="nav-link" href="./import.html" data-page="import"><i
+                class="bi bi-box-arrow-in-down"></i> 匯入</a></li>
+          <li class="nav-item"><a class="nav-link" href="./export.html" data-page="export"><i
+                class="bi bi-box-arrow-up"></i> 匯出</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Toast 容器 -->
+  <div id="toastContainer"></div>
+
+  <!-- 主內容 -->
+  <div class="container" style="max-width: 640px;">
+    <h5 class="mb-3"><i class="bi bi-pencil-square"></i> 記帳</h5>
+    <div class="main-card">
+
+      <!-- 日期列 -->
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <button id="btnPrevDay" class="btn btn-outline-secondary btn-sm" title="前一日">
+          <i class="bi bi-chevron-left"></i> 前一日
+        </button>
+        <input type="date" id="inputDate" class="form-control form-control-sm text-center fw-semibold"
+          style="max-width: 160px;">
+        <button id="btnNextDay" class="btn btn-outline-secondary btn-sm" title="下一日">
+          下一日 <i class="bi bi-chevron-right"></i>
+        </button>
+        <button id="btnToday" class="btn btn-outline-secondary btn-sm ms-auto" title="回到今日">
+          今日
+        </button>
+      </div>
+
+      <form id="txForm" novalidate>
+
+        <!-- 類型 -->
+        <div class="mb-3">
+          <div class="btn-group type-group w-100" role="group">
+            <input type="radio" class="btn-check" name="type" id="typeE" value="E" autocomplete="off" checked>
+            <label class="btn btn-outline-danger" for="typeE">
+              <i class="bi bi-arrow-down-circle"></i> 支出
+            </label>
+            <input type="radio" class="btn-check" name="type" id="typeI" value="I" autocomplete="off">
+            <label class="btn btn-outline-success" for="typeI">
+              <i class="bi bi-arrow-up-circle"></i> 收入
+            </label>
+          </div>
+        </div>
+
+        <!-- 主類 / 次類 -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label fw-semibold small">主類</label>
+            <select id="selMain" class="form-select" required>
+              <option value="">— 選擇主類 —</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold small">次類</label>
+            <select id="selSub" class="form-select">
+              <option value="">(無)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 金額 -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">金額</label>
+          <div class="input-group">
+            <span class="input-group-text">NT$</span>
+            <input type="number" id="inputAmount" class="form-control amount" min="1" step="1" placeholder="0" required>
+          </div>
+        </div>
+
+        <!-- 明細 -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">明細</label>
+          <input type="text" id="inputDetail" class="form-control" placeholder="交易說明（可空白）" maxlength="200">
+        </div>
+
+        <!-- 備註 -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">備註</label>
+          <input type="text" id="inputNote" class="form-control" placeholder="附加備註（可空白）" maxlength="200">
+        </div>
+
+        <!-- 送出 -->
+        <button type="submit" id="btnSubmit" class="btn btn-primary w-100">
+          <i class="bi bi-plus-circle"></i> 新增
+        </button>
+
+      </form>
+    </div><!-- /.main-card -->
+
+    <!-- 當日已記錄 -->
+    <div class="main-card mt-3">
+      <div class="section-title" id="listTitle">今日已記錄</div>
+      <div id="todayList">
+        <div class="text-muted small text-center py-2">載入中…</div>
+      </div>
+    </div>
+
+  </div><!-- /.container -->
+
+  <script src="./lib/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/format.js"></script>
+  <script src="./js/toast.js"></script>
+  <script src="./js/navbar.js"></script>
+  <script>
+    // ── 狀態 ──
+    let allCategories = [];   // 完整分類陣列 [{類型,主類,次類}, ...]
+
+    // ── 工具：今天日期字串 YYYY-MM-DD ──
+    function todayStr() {
+      return new Date().toLocaleDateString("sv");   // sv locale → YYYY-MM-DD
+    }
+
+    // ── 日期輸入 ──
+    const inputDate = document.getElementById("inputDate");
+    inputDate.value = todayStr();
+
+    function shiftDate(delta) {
+      const base = inputDate.value || todayStr();
+      const d = new Date(base + "T00:00:00");
+      if (isNaN(d.getTime())) { inputDate.value = todayStr(); return; }
+      d.setDate(d.getDate() + delta);
+      inputDate.value = d.toLocaleDateString("sv");
+      loadTodayList();
+    }
+    document.getElementById("btnPrevDay").addEventListener("click", () => shiftDate(-1));
+    document.getElementById("btnNextDay").addEventListener("click", () => shiftDate(+1));
+    document.getElementById("btnToday").addEventListener("click", () => {
+      inputDate.value = todayStr();
+      loadTodayList();
+    });
+    inputDate.addEventListener("change", loadTodayList);
+
+    // ── 分類下拉 ──
+    function getSelectedType() {
+      return document.querySelector("input[name='type']:checked")?.value || "E";
+    }
+
+    function rebuildMainDropdown() {
+      const type = getSelectedType();
+      const mains = [...new Set(
+        allCategories.filter(c => c["類型"] === type).map(c => c["主類"])
+      )];
+      const sel = document.getElementById("selMain");
+      sel.innerHTML = '<option value="">— 選擇主類 —</option>' +
+        mains.map(m => `<option value="${fmt.escHtml(m)}">${fmt.escHtml(m)}</option>`).join("");
+      if (mains.includes("餐飲費")) sel.value = "餐飲費";
+      rebuildSubDropdown();
+    }
+
+    function rebuildSubDropdown() {
+      const type = getSelectedType();
+      const main = document.getElementById("selMain").value;
+      const subs = allCategories
+        .filter(c => c["類型"] === type && c["主類"] === main && c["次類"] !== "")
+        .map(c => c["次類"]);
+      const sel = document.getElementById("selSub");
+      sel.innerHTML = '<option value="">(無)</option>' +
+        subs.map(s => `<option value="${fmt.escHtml(s)}">${fmt.escHtml(s)}</option>`).join("");
+    }
+
+    document.querySelectorAll("input[name='type']").forEach(r =>
+      r.addEventListener("change", rebuildMainDropdown)
+    );
+    document.getElementById("selMain").addEventListener("change", rebuildSubDropdown);
+
+    // ── 當日已記錄列表 ──
+    async function loadTodayList() {
+      const date = inputDate.value;
+      const container = document.getElementById("todayList");
+      const title = document.getElementById("listTitle");
+      if (title) {
+        title.textContent = date === todayStr() ? "今日已記錄" : `${date} 已記錄`;
+      }
+      if (!date) {
+        container.innerHTML = '<div class="text-muted small text-center py-2">請選擇日期</div>';
+        return;
+      }
+      try {
+        const res = await api.get(`/api/transactions?from=${date}&to=${date}&size=10`);
+        const items = res.items;
+        if (items.length === 0) {
+          container.innerHTML = '<div class="text-muted small text-center py-2">今日尚無記錄</div>';
+          return;
+        }
+        container.innerHTML = items.map(t => {
+          const amtClass = t["類型"] === "I" ? "text-income" : "text-expense";
+          const sign = t["類型"] === "I" ? "+" : "−";
+          const cat = fmt.categoryLabel(t["類別主類"], t["類別次類"]);
+          const detail = t["明細"] ? `<span class="text-muted">${fmt.escHtml(t["明細"])}</span>` : "";
+          return `<div class="today-item">
+        ${fmt.typeBadge(t["類型"])}
+        <span>${fmt.escHtml(cat)}</span>
+        ${detail}
+        <span class="today-amount amount ${amtClass}">${sign}${fmt.amount(t["金額"])}</span>
+      </div>`;
+        }).join('<hr class="my-1">');
+      } catch (e) {
+        container.innerHTML = `<div class="text-danger small">${fmt.escHtml(e.message)}</div>`;
+      }
+    }
+
+    // ── 表單送出 ──
+    document.getElementById("txForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btnSubmit");
+
+      const body = {
+        "日期": inputDate.value,
+        "類型": getSelectedType(),
+        "類別主類": document.getElementById("selMain").value,
+        "類別次類": document.getElementById("selSub").value,
+        "金額": parseInt(document.getElementById("inputAmount").value, 10),
+        "明細": document.getElementById("inputDetail").value.trim(),
+        "備註": document.getElementById("inputNote").value.trim(),
+      };
+
+      if (!body["日期"]) { toast.error("請選擇日期"); return; }
+      if (!body["類別主類"]) { toast.error("請選擇主類"); return; }
+      if (!body["金額"] || body["金額"] <= 0) { toast.error("請輸入有效金額"); return; }
+
+      btn.disabled = true;
+      try {
+        await api.post("/api/transactions", body);
+        toast.success("新增成功");
+        // 保留日期與類型，清空其他欄位，主類恢復預設
+        rebuildMainDropdown();
+        document.getElementById("inputAmount").value = "";
+        document.getElementById("inputDetail").value = "";
+        document.getElementById("inputNote").value = "";
+        await loadTodayList();
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ── 初始化 ──
+    (async () => {
+      try {
+        allCategories = await api.get("/api/categories");
+        rebuildMainDropdown();
+      } catch (e) {
+        toast.error("無法載入分類：" + e.message);
+      }
+      await loadTodayList();
+    })();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,68 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+venv/
+venv-win/
+.venv/
+env/
+ENV/
+
+# =========================
+# Test / coverage
+# =========================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Type checker / lint cache
+.mypy_cache/
+.ruff_cache/
+.pyre/
+
+# =========================
+# Logs / runtime
+# =========================
+*.log
+
+# =========================
+# IDE / editor
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Local environment files
+# =========================
+.env
+.env.*
+
+# =========================
+# Project data (private)
+# =========================
+# 交易資料通常為個資，不建議上傳
+data/main_db.csv
+
+# 若分類也包含私人命名可取消下一行註解
+# data/categories.csv

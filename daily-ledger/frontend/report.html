@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>報表 — Daily Ledger</title>
+  <link rel="stylesheet" href="./lib/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="./lib/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dl mb-4">
+    <div class="container">
+      <span class="navbar-brand"><i class="bi bi-journal-text"></i> Daily Ledger</span>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="./index.html" data-page="index"><i
+                class="bi bi-pencil-square"></i> 記帳</a></li>
+          <li class="nav-item"><a class="nav-link" href="./list.html" data-page="list"><i class="bi bi-list-ul"></i>
+              列表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./report.html" data-page="report"><i
+                class="bi bi-bar-chart"></i> 報表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./categories.html" data-page="categories"><i
+                class="bi bi-tags"></i> 分類</a></li>
+          <li class="nav-item"><a class="nav-link" href="./import.html" data-page="import"><i
+                class="bi bi-box-arrow-in-down"></i> 匯入</a></li>
+          <li class="nav-item"><a class="nav-link" href="./export.html" data-page="export"><i
+                class="bi bi-box-arrow-up"></i> 匯出</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Toast 容器 -->
+  <div id="toastContainer"></div>
+
+  <div class="container" style="max-width: 960px;">
+    <h5 class="mb-3"><i class="bi bi-bar-chart"></i> 統計報表</h5>
+
+    <!-- 日期範圍選擇器 -->
+    <div class="main-card mb-4">
+      <div class="section-title mb-3">
+        <i class="bi bi-bar-chart"></i> 統計報表
+      </div>
+
+      <!-- 快捷按鈕 -->
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <button class="btn btn-outline-secondary btn-sm" onclick="setRange('month')" id="btn-month">本月</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="setRange('quarter')" id="btn-quarter">本季</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="setRange('year')" id="btn-year">本年</button>
+        <button class="btn btn-outline-secondary btn-sm active" onclick="setRange('12m')" id="btn-12m">近 12 月</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="setRange('all')" id="btn-all">全部</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="setRange('custom')" id="btn-custom">自訂</button>
+      </div>
+
+      <!-- 自訂日期區間（預設隱藏） -->
+      <div id="customRange" class="d-none mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <input type="date" id="fromDate" class="form-control form-control-sm" style="max-width:160px">
+          <span class="text-muted">～</span>
+          <input type="date" id="toDate" class="form-control form-control-sm" style="max-width:160px">
+          <button class="btn btn-primary btn-sm" onclick="loadCharts()">套用</button>
+        </div>
+      </div>
+
+      <!-- 目前範圍顯示 -->
+      <div id="rangeLabel" class="text-muted small"></div>
+    </div>
+
+    <!-- 圖一：月度收支 -->
+    <div class="main-card mb-4">
+      <div class="section-title mb-3">
+        <i class="bi bi-bar-chart-fill"></i> 月度收支
+      </div>
+      <div id="noDataMonthly" class="alert alert-warning d-none">此區間無交易資料。</div>
+      <div id="wrapMonthly" style="position:relative; height:320px;">
+        <canvas id="chartMonthly"></canvas>
+      </div>
+    </div>
+
+    <!-- 圖二：分類佔比 -->
+    <div class="main-card mb-4">
+      <div class="section-title mb-3">
+        <i class="bi bi-pie-chart"></i> 分類佔比
+        <div class="d-inline-flex gap-2 ms-3 float-end">
+          <!-- 收支切換 -->
+          <div class="btn-group btn-group-sm" role="group">
+            <input type="radio" class="btn-check" name="catType" id="catTypeE" value="E" checked>
+            <label class="btn btn-outline-danger" for="catTypeE">支出</label>
+            <input type="radio" class="btn-check" name="catType" id="catTypeI" value="I">
+            <label class="btn btn-outline-success" for="catTypeI">收入</label>
+          </div>
+          <!-- 主類/次類切換 -->
+          <div class="btn-group btn-group-sm" role="group">
+            <input type="radio" class="btn-check" name="catLevel" id="catLevelMain" value="main" checked>
+            <label class="btn btn-outline-secondary" for="catLevelMain">主類</label>
+            <input type="radio" class="btn-check" name="catLevel" id="catLevelSub" value="sub">
+            <label class="btn btn-outline-secondary" for="catLevelSub">次類</label>
+          </div>
+        </div>
+      </div>
+      <div id="noDataCategory" class="alert alert-warning d-none">此區間無資料。</div>
+      <div class="row align-items-center">
+        <div class="col-md-6" style="position:relative; height:300px;">
+          <canvas id="chartCategory"></canvas>
+        </div>
+        <div class="col-md-6">
+          <div id="categoryLegend" class="small"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 圖三：前十大支出項目 -->
+    <div class="main-card mb-4">
+      <div class="section-title mb-3">
+        <i class="bi bi-trophy"></i> <span id="topExpenseTitle">當月支出金額前十大項目</span>
+        <div class="d-inline-flex gap-2 ms-3 float-end">
+          <select id="topExpenseFilter" class="form-select form-select-sm" style="min-width:90px;"></select>
+        </div>
+      </div>
+      <div id="noDataTopExpense" class="alert alert-warning d-none">此期間無支出資料。</div>
+      <div id="wrapTopExpense" style="position:relative; height:520px;">
+        <canvas id="chartTopExpense"></canvas>
+      </div>
+    </div>
+
+    <!-- 圖三：月度趨勢 -->
+    <div class="main-card mb-4">
+      <div class="section-title mb-3">
+        <i class="bi bi-graph-up"></i> 月度趨勢
+        <div class="d-inline-flex gap-2 ms-3 float-end" style="max-width:220px;">
+          <select id="trendCategoryFilter" class="form-select form-select-sm">
+            <option value="">全部分類</option>
+          </select>
+        </div>
+      </div>
+      <div id="noDataTrend" class="alert alert-warning d-none">此區間無交易資料。</div>
+      <div id="wrapTrend" style="position:relative; height:300px;">
+        <canvas id="chartTrend"></canvas>
+      </div>
+    </div>
+
+  </div><!-- /.container -->
+
+  <script src="./lib/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="./lib/chart.js/chart.umd.min.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/format.js"></script>
+  <script src="./js/toast.js"></script>
+  <script src="./js/navbar.js"></script>
+  <script>
+    // ── 顏色常數 ──
+    const COLOR_INCOME = "#198754";
+    const COLOR_EXPENSE = "#dc3545";
+    const COLOR_NET = "#0d6efd";
+    const COLOR_INCOME_BG = "rgba(25,135,84,0.6)";
+    const COLOR_EXPENSE_BG = "rgba(220,53,69,0.6)";
+
+    const DONUT_PALETTE = [
+      "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
+      "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ac",
+    ];
+
+    // ── 狀態 ──
+    let _from = null;
+    let _to = null;
+    let _globalMin = null;
+    let _globalMax = null;
+    let _chartMonthly = null;
+    let _chartCategory = null;
+    let _chartTrend = null;
+    let _currentMode = "12m";
+
+    const fromEl = document.getElementById("fromDate");
+    const toEl = document.getElementById("toDate");
+
+    // ── 快捷按鈕 ──
+    const RANGE_BTNS = ["month", "quarter", "year", "12m", "all", "custom"];
+
+    function setRange(mode) {
+      _currentMode = mode;
+
+      // 按鈕 active 狀態
+      RANGE_BTNS.forEach(m => {
+        document.getElementById(`btn-${m}`).classList.toggle("active", m === mode);
+      });
+
+      const customEl = document.getElementById("customRange");
+
+      if (mode === "custom") {
+        customEl.classList.remove("d-none");
+        return; // 等使用者按「套用」
+      }
+      customEl.classList.add("d-none");
+
+      const today = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+      if (mode === "all") {
+        if (!_globalMin || !_globalMax) {
+          toast.error("目前無任何交易資料，請先新增或匯入交易。");
+          return;
+        }
+        _from = _globalMin;
+        _to = _globalMax;
+      } else if (mode === "month") {
+        _from = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
+        _to = ymd(today);
+      } else if (mode === "quarter") {
+        const qStart = Math.floor(today.getMonth() / 3) * 3;
+        _from = `${today.getFullYear()}-${pad(qStart + 1)}-01`;
+        _to = ymd(today);
+      } else if (mode === "year") {
+        _from = `${today.getFullYear()}-01-01`;
+        _to = ymd(today);
+      } else if (mode === "12m") {
+        const d = new Date(today);
+        d.setMonth(d.getMonth() - 11);
+        d.setDate(1);
+        _from = ymd(d);
+        _to = ymd(today);
+      }
+
+      fromEl.value = _from;
+      toEl.value = _to;
+      updateRangeLabel();
+      loadCharts();
+    }
+
+    function updateRangeLabel() {
+      document.getElementById("rangeLabel").textContent =
+        _from && _to ? `目前範圍：${_from} ～ ${_to}` : "";
+    }
+
+    // ── 載入所有圖表 ──
+    async function loadCharts() {
+      if (_currentMode === "custom") {
+        _from = fromEl.value;
+        _to = toEl.value;
+      }
+      if (!_from || !_to || _from > _to) {
+        toast.error("請輸入有效的日期範圍");
+        return;
+      }
+      updateRangeLabel();
+      await Promise.all([loadMonthly(), loadCategory(), loadTrend()]);
+    }
+
+    // ── 圖一：月度收支 ──
+    async function loadMonthly() {
+      try {
+        const data = await api.get(`/api/report/monthly?from=${_from}&to=${_to}&type=all`);
+        const noData = data.every(d => d.income === 0 && d.expense === 0);
+        document.getElementById("noDataMonthly").classList.toggle("d-none", !noData);
+        document.getElementById("wrapMonthly").classList.toggle("d-none", noData);
+        if (noData) return;
+
+        const labels = data.map(d => d.month);
+        const income = data.map(d => d.income);
+        const expense = data.map(d => d.expense);
+        const net = data.map(d => d.net);
+
+        const ctx = document.getElementById("chartMonthly").getContext("2d");
+        if (_chartMonthly) _chartMonthly.destroy();
+        _chartMonthly = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                type: "bar",
+                label: "收入",
+                data: income,
+                backgroundColor: COLOR_INCOME_BG,
+                borderColor: COLOR_INCOME,
+                borderWidth: 1,
+                yAxisID: "y",
+              },
+              {
+                type: "bar",
+                label: "支出",
+                data: expense,
+                backgroundColor: COLOR_EXPENSE_BG,
+                borderColor: COLOR_EXPENSE,
+                borderWidth: 1,
+                yAxisID: "y",
+              },
+              {
+                type: "line",
+                label: "淨額",
+                data: net,
+                borderColor: COLOR_NET,
+                backgroundColor: "transparent",
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0.3,
+                yAxisID: "y",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "top" },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.dataset.label}: ${ctx.raw.toLocaleString()}`,
+                },
+              },
+            },
+            scales: {
+              x: { grid: { display: false } },
+              y: {
+                ticks: { callback: v => v.toLocaleString() },
+              },
+            },
+          },
+        });
+      } catch (e) {
+        toast.error("月度收支載入失敗：" + e.message);
+      }
+    }
+
+    // ── 圖二：分類佔比 ──
+    async function loadCategory() {
+      const type = document.querySelector("input[name='catType']:checked").value;
+      const level = document.querySelector("input[name='catLevel']:checked").value;
+      try {
+        const data = await api.get(
+          `/api/report/category?from=${_from}&to=${_to}&type=${type}&level=${level}`
+        );
+        const noData = data.items.length === 0;
+        document.getElementById("noDataCategory").classList.toggle("d-none", !noData);
+        document.getElementById("chartCategory").closest(".row").classList.toggle("d-none", noData);
+        if (noData) return;
+
+        const labels = data.items.map(i => i.name);
+        const amounts = data.items.map(i => i.amount);
+        const colors = labels.map((_, idx) => DONUT_PALETTE[idx % DONUT_PALETTE.length]);
+
+        const ctx = document.getElementById("chartCategory").getContext("2d");
+        if (_chartCategory) _chartCategory.destroy();
+        _chartCategory = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels,
+            datasets: [{
+              data: amounts,
+              backgroundColor: colors,
+              borderWidth: 1,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const item = data.items[ctx.dataIndex];
+                    return ` ${item.name}: ${item.amount.toLocaleString()} (${item.percent}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // 自訂圖例（用 DOM API 避免 XSS）
+        const legendEl = document.getElementById("categoryLegend");
+        legendEl.innerHTML = "";
+        data.items.forEach((item, idx) => {
+          const row = document.createElement("div");
+          row.className = "d-flex align-items-center mb-1 gap-2";
+
+          const dot = document.createElement("span");
+          dot.style.cssText = `display:inline-block;width:12px;height:12px;background:${colors[idx]};border-radius:2px;flex-shrink:0`;
+
+          const nameEl = document.createElement("span");
+          nameEl.className = "text-truncate";
+          nameEl.style.maxWidth = "140px";
+          nameEl.title = item.name;
+          nameEl.textContent = item.name;
+
+          const amtEl = document.createElement("span");
+          amtEl.className = "ms-auto amount text-muted";
+          amtEl.textContent = item.amount.toLocaleString();
+
+          const pctEl = document.createElement("span");
+          pctEl.className = "text-muted";
+          pctEl.style.cssText = "min-width:42px;text-align:right";
+          pctEl.textContent = `${item.percent}%`;
+
+          row.append(dot, nameEl, amtEl, pctEl);
+          legendEl.appendChild(row);
+        });
+      } catch (e) {
+        toast.error("分類佔比載入失敗：" + e.message);
+      }
+    }
+
+    // ── 圖三：月度趨勢 ──
+    async function loadTrend() {
+      const catMain = document.getElementById("trendCategoryFilter").value;
+      const params = catMain
+        ? `/api/report/trend?from=${_from}&to=${_to}&category_main=${encodeURIComponent(catMain)}`
+        : `/api/report/trend?from=${_from}&to=${_to}`;
+      try {
+        const data = await api.get(params);
+        const noData = data.every(d => d.income === 0 && d.expense === 0);
+        document.getElementById("noDataTrend").classList.toggle("d-none", !noData);
+        document.getElementById("wrapTrend").classList.toggle("d-none", noData);
+        if (noData) return;
+
+        const labels = data.map(d => d.month);
+        const income = data.map(d => d.income);
+        const expense = data.map(d => d.expense);
+        const net = data.map(d => d.net);
+
+        const ctx = document.getElementById("chartTrend").getContext("2d");
+        if (_chartTrend) _chartTrend.destroy();
+        _chartTrend = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "收入",
+                data: income,
+                borderColor: COLOR_INCOME,
+                backgroundColor: "transparent",
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0.3,
+              },
+              {
+                label: "支出",
+                data: expense,
+                borderColor: COLOR_EXPENSE,
+                backgroundColor: "transparent",
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0.3,
+              },
+              {
+                label: "淨額",
+                data: net,
+                borderColor: COLOR_NET,
+                backgroundColor: "transparent",
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "top" },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.dataset.label}: ${ctx.raw.toLocaleString()}`,
+                },
+              },
+            },
+            scales: {
+              x: { grid: { display: false } },
+              y: {
+                ticks: { callback: v => v.toLocaleString() },
+              },
+            },
+          },
+        });
+      } catch (e) {
+        toast.error("月度趨勢載入失敗：" + e.message);
+      }
+    }
+
+    // ── 前十大支出圖表 ──
+    let _chartTopExpense = null;
+
+    function initTopExpenseFilter() {
+      const sel = document.getElementById("topExpenseFilter");
+      const now = new Date();
+      const year = now.getFullYear();
+      const monthNames = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+      sel.innerHTML = "";
+      monthNames.forEach((name, i) => {
+        const opt = document.createElement("option");
+        opt.value = `month:${year}:${i + 1}`;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      });
+      [["當年", year], ["前年", year - 1]].forEach(([label, y]) => {
+        const opt = document.createElement("option");
+        opt.value = `year:${y}`;
+        opt.textContent = label;
+        sel.appendChild(opt);
+      });
+      sel.value = `month:${year}:${now.getMonth() + 1}`;
+      sel.addEventListener("change", loadTopExpense);
+    }
+
+    function topExpenseDateRange() {
+      const val = document.getElementById("topExpenseFilter").value;
+      const parts = val.split(":");
+      if (parts[0] === "month") {
+        const y = parts[1], m = Number(parts[2]);
+        const mm = String(m).padStart(2, "0");
+        const lastDay = new Date(Number(y), m, 0).getDate();
+        return { from: `${y}-${mm}-01`, to: `${y}-${mm}-${lastDay}`, label: `${y}年${m}月 支出金額前十大項目` };
+      } else {
+        const y = parts[1];
+        return { from: `${y}-01-01`, to: `${y}-12-31`, label: `${y}年 支出金額前十大項目` };
+      }
+    }
+
+    async function loadTopExpense() {
+      const { from, to, label } = topExpenseDateRange();
+      document.getElementById("topExpenseTitle").textContent = label;
+      try {
+        const data = await api.get(`/api/report/top-expense?from=${from}&to=${to}`);
+        const noData = data.length === 0;
+        document.getElementById("noDataTopExpense").classList.toggle("d-none", !noData);
+        document.getElementById("wrapTopExpense").classList.toggle("d-none", noData);
+        if (noData) return;
+
+        // API 回傳 DESC 排序（最大在前）；Chart.js 水平圖第一筆顯示在最上方
+        const labels = data.map(d => {
+          const sub = d.sub_cat ? ` ${d.sub_cat}` : "";
+          return [`${d.main_cat}${sub}`, `${d.date} / ${d.detail || "－"}`];
+        });
+        const amounts = data.map(d => d.amount);
+
+        const barAmountLabel = {
+          id: "barAmountLabel",
+          afterDatasetsDraw(chart) {
+            const { ctx: c, data, scales: { x, y } } = chart;
+            c.save();
+            c.font = "bold 12px sans-serif";
+            c.fillStyle = "#333";
+            c.textAlign = "left";
+            c.textBaseline = "middle";
+            data.datasets[0].data.forEach((val, i) => {
+              const xPx = x.getPixelForValue(val);
+              const yPx = y.getPixelForValue(i);
+              c.fillText(`NT$ ${val.toLocaleString()}`, xPx + 6, yPx);
+            });
+            c.restore();
+          },
+        };
+
+        const ctx = document.getElementById("chartTopExpense").getContext("2d");
+        if (_chartTopExpense) _chartTopExpense.destroy();
+        _chartTopExpense = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [{
+              label: "支出金額",
+              data: amounts,
+              backgroundColor: COLOR_EXPENSE_BG,
+              borderColor: COLOR_EXPENSE,
+              borderWidth: 1,
+            }],
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { right: 100 } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: items => {
+                    const lbl = items[0].label;
+                    return Array.isArray(lbl) ? lbl[0] : lbl;
+                  },
+                  label: ctx => `NT$ ${ctx.parsed.x.toLocaleString()}`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: { callback: v => v.toLocaleString() },
+              },
+              y: {
+                ticks: {
+                  autoSkip: false,
+                  font: ctx => {
+                    const lbl = ctx.chart.data.labels[ctx.index];
+                    return Array.isArray(lbl) && ctx.index % 1 === 0
+                      ? { size: 12 }
+                      : { size: 11 };
+                  },
+                  color: "#333",
+                },
+              },
+            },
+          },
+          plugins: [barAmountLabel],
+        });
+      } catch (e) {
+        toast.error("載入前十大支出失敗");
+      }
+    }
+
+    // ── 分類篩選下拉初始化 ──
+    async function loadCategoryList() {
+      try {
+        const cats = await api.get("/api/categories");
+        const mains = [...new Set(cats.map(c => c["主類"]))].sort();
+        const sel = document.getElementById("trendCategoryFilter");
+        mains.forEach(m => {
+          const opt = document.createElement("option");
+          opt.value = m;
+          opt.textContent = m;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        // 靜默失敗，下拉只顯示「全部分類」
+      }
+    }
+
+    // ── 控制事件 ──
+    document.querySelectorAll("input[name='catType'], input[name='catLevel']").forEach(el => {
+      el.addEventListener("change", loadCategory);
+    });
+    document.getElementById("trendCategoryFilter").addEventListener("change", loadTrend);
+
+    // ── 初始化 ──
+    (async () => {
+      try {
+        const dr = await api.get("/api/transactions/date_range");
+        _globalMin = dr.min;
+        _globalMax = dr.max;
+      } catch (e) {
+        // 不阻斷後續流程
+      }
+      await loadCategoryList();
+      initTopExpenseFilter();
+      loadTopExpense();
+      setRange("12m");   // 預設近 12 個月
+    })();
+  </script>
+</body>
+
+</html>

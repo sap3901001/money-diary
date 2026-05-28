@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>匯出 — Daily Ledger</title>
+  <link rel="stylesheet" href="./lib/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="./lib/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dl mb-4">
+    <div class="container">
+      <span class="navbar-brand"><i class="bi bi-journal-text"></i> Daily Ledger</span>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="./index.html" data-page="index"><i
+                class="bi bi-pencil-square"></i> 記帳</a></li>
+          <li class="nav-item"><a class="nav-link" href="./list.html" data-page="list"><i class="bi bi-list-ul"></i>
+              列表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./report.html" data-page="report"><i
+                class="bi bi-bar-chart"></i> 報表</a></li>
+          <li class="nav-item"><a class="nav-link" href="./categories.html" data-page="categories"><i
+                class="bi bi-tags"></i> 分類</a></li>
+          <li class="nav-item"><a class="nav-link" href="./import.html" data-page="import"><i
+                class="bi bi-box-arrow-in-down"></i> 匯入</a></li>
+          <li class="nav-item"><a class="nav-link" href="./export.html" data-page="export"><i
+                class="bi bi-box-arrow-up"></i> 匯出</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Toast 容器 -->
+  <div id="toastContainer"></div>
+
+  <div class="container" style="max-width: 640px;">
+    <h5 class="mb-3"><i class="bi bi-box-arrow-up"></i> 匯出</h5>
+
+    <div class="main-card">
+      <div class="section-title mb-4">
+        <i class="bi bi-box-arrow-up"></i> 匯出交易資料
+      </div>
+
+      <!-- 無資料提示 -->
+      <div id="noDataAlert" class="alert alert-warning d-none">
+        <i class="bi bi-exclamation-triangle"></i> 目前沒有任何交易資料可供匯出。
+      </div>
+
+      <!-- 日期範圍 -->
+      <div id="exportForm">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">日期範圍</label>
+          <div class="d-flex align-items-center gap-2">
+            <input type="date" id="fromDate" class="form-control">
+            <span class="text-muted">～</span>
+            <input type="date" id="toDate" class="form-control">
+          </div>
+        </div>
+
+        <!-- 快捷按鈕 -->
+        <div class="mb-4 d-flex flex-wrap gap-2">
+          <button class="btn btn-outline-secondary btn-sm" onclick="setRange('all')">全部資料</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="setRange('year')">本年</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="setRange('12m')">近 12 月</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="setRange('month')">本月</button>
+        </div>
+
+        <!-- 預覽資訊 -->
+        <div id="previewInfo" class="alert alert-light border mb-4 d-none">
+          <i class="bi bi-info-circle"></i>
+          <span id="previewText"></span>
+        </div>
+
+        <!-- 下載按鈕 -->
+        <button id="btnDownload" class="btn btn-primary w-100" disabled>
+          <i class="bi bi-download"></i> 下載 CSV
+        </button>
+
+        <div class="text-muted small mt-3">
+          <i class="bi bi-lightbulb"></i>
+          匯出格式：UTF-8 CSV（含 BOM，Excel 可直接開啟）。金額為正整數，收支方向由「類型」欄（E=支出、I=收入）決定。
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.container -->
+
+  <script src="./lib/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/format.js"></script>
+  <script src="./js/toast.js"></script>
+  <script src="./js/navbar.js"></script>
+  <script>
+    const fromEl = document.getElementById("fromDate");
+    const toEl = document.getElementById("toDate");
+    const btnDl = document.getElementById("btnDownload");
+
+    let _globalMin = null;
+    let _globalMax = null;
+    let _previewTimer = null;
+
+    // ── 快捷範圍設定 ──
+    function setRange(mode) {
+      if (!_globalMin) return;
+      const today = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+      let from, to;
+      to = ymd(today);
+
+      if (mode === "all") {
+        from = _globalMin;
+        to = _globalMax;
+      } else if (mode === "year") {
+        from = `${today.getFullYear()}-01-01`;
+      } else if (mode === "12m") {
+        const d = new Date(today);
+        d.setMonth(d.getMonth() - 11);
+        d.setDate(1);
+        from = ymd(d);
+      } else if (mode === "month") {
+        from = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
+      }
+
+      fromEl.value = from;
+      toEl.value = to;
+      schedulePreview();
+    }
+
+    // ── 預覽（防抖 400ms）──
+    function schedulePreview() {
+      clearTimeout(_previewTimer);
+      _previewTimer = setTimeout(updatePreview, 400);
+    }
+
+    async function updatePreview() {
+      const from = fromEl.value;
+      const to = toEl.value;
+
+      if (!from || !to || from > to) {
+        setPreviewText(null);
+        btnDl.disabled = true;
+        return;
+      }
+
+      try {
+        const data = await api.get(`/api/transactions?from=${from}&to=${to}&page=1&size=1`);
+        const count = data.total;
+        if (count === 0) {
+          setPreviewText(`所選範圍（${from} ～ ${to}）沒有交易資料`);
+          btnDl.disabled = true;
+        } else {
+          setPreviewText(`將匯出 ${count.toLocaleString()} 筆交易（${from} ～ ${to}）`);
+          btnDl.disabled = false;
+        }
+      } catch (e) {
+        setPreviewText(null);
+        btnDl.disabled = true;
+      }
+    }
+
+    function setPreviewText(text) {
+      const el = document.getElementById("previewInfo");
+      if (text) {
+        document.getElementById("previewText").textContent = " " + text;
+        el.classList.remove("d-none");
+      } else {
+        el.classList.add("d-none");
+      }
+    }
+
+    // ── 下載 ──
+    btnDl.addEventListener("click", () => {
+      const from = fromEl.value;
+      const to = toEl.value;
+      if (!from || !to || from > to) return;
+
+      // 用 <a> 觸發下載（保留瀏覽器原生檔名行為）
+      const a = document.createElement("a");
+      a.href = `/api/export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+      a.download = "";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success("CSV 下載已開始");
+    });
+
+    // ── 日期輸入監聽 ──
+    fromEl.addEventListener("change", schedulePreview);
+    toEl.addEventListener("change", schedulePreview);
+
+    // ── 初始化：取資料日期範圍 ──
+    (async () => {
+      try {
+        const dr = await api.get("/api/transactions/date_range");
+        if (!dr.min) {
+          document.getElementById("noDataAlert").classList.remove("d-none");
+          document.getElementById("exportForm").classList.add("d-none");
+          return;
+        }
+        _globalMin = dr.min;
+        _globalMax = dr.max;
+        fromEl.value = dr.min;
+        toEl.value = dr.max;
+        await updatePreview();
+      } catch (e) {
+        toast.error("無法取得資料範圍：" + e.message);
+      }
+    })();
+  </script>
+</body>
+
+</html>

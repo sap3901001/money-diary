@@ -1,0 +1,4 @@
+# Reserved for future third-party dependencies.
+# This project currently uses only the Python standard library.
+# Keep this file for a consistent workflow:
+#   pip install -r requirements.txt
