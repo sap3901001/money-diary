@@ -10,7 +10,7 @@ source venv/bin/activate
 uvicorn app:app --port 8000 --reload
 
 # 執行測試
-pytest tests/                          # 全部 500 tests
+pytest tests/                          # 全部 496 tests
 pytest tests/unit/                     # 只跑單元測試
 pytest tests/api/                      # 只跑 API 測試
 pytest tests/ -k "test_merge"          # 執行特定測試
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 app.py            ← FastAPI 路由 + Pydantic 驗證
 data_manager.py   ← CSV 讀寫（MAIN_DB / CATEGORIES_CSV），所有業務邏輯
 import_export.py  ← MyAB CSV 解析（A/L 過濾、欄位對映）與分類提取
-report_engine.py  ← 報表聚合（monthly/category/trend）
+report_engine.py  ← 報表聚合（monthly/category/trend/top_expense）
 frontend/
   *.html          ← 各功能頁（index/list/report/categories/import/export）
   style.css
@@ -90,6 +90,7 @@ tests/
 | GET | `/api/report/monthly` | `from`, `to`, `type=E\|I\|all` | 月度收支摘要（含空月補 0） |
 | GET | `/api/report/category` | `from`, `to`, `type=E\|I`, `level=main\|sub` | 分類佔比（按金額 DESC） |
 | GET | `/api/report/trend` | `from`, `to`, `type=E\|I\|all`, `category_main` | 月度趨勢（可選主類篩選） |
+| GET | `/api/report/top-expense` | `from`, `to`, `limit=10` | 前 N 筆最大支出（逐筆，不彙總，金額 DESC） |
 
 ### 匯入/匯出 API
 

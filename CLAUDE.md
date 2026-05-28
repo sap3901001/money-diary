@@ -67,7 +67,7 @@ for f in sys.argv[1:]:
 app.py              ← FastAPI 路由、Pydantic 模型、匯入暫存（_preview_store）
 data_manager.py     ← CSV 讀寫（原子性）、分類與交易的全部業務邏輯
 import_export.py    ← 解析 MyAB CSV（UTF-8 BOM）→ 轉換為內部資料格式
-report_engine.py    ← 月度/分類/趨勢報表聚合計算
+report_engine.py    ← 月度/分類/趨勢/前十大支出報表聚合計算
 frontend/           ← 靜態 HTML + Bootstrap 5 + Chart.js（無前端框架）
 data/               ← main_db.csv（交易記錄）、categories.csv（分類設定）
 tests/              ← unit/、api/、integration/ 三層
@@ -83,6 +83,8 @@ tests/              ← unit/、api/、integration/ 三層
 - **去重鍵**：日期 + 類型 + 主類 + 次類 + 金額 + 明細，六欄組合一致視為重複。
 - **分類排序**：`categories.csv` 含 `sort_order` 欄位（整數），用於自訂顯示順序；舊版無此欄時由 `_migrate_sort_order()` 補齊。
 - **測試 fixture**：測試使用 `monkeypatch` 將 `dm.DATA_FILE` / `dm.CAT_FILE` 重導至暫存路徑，不污染 `data/`。
+- **統計報表圖表順序**：月度收支 → 分類佔比 → 支出金額前十大項目 → 月度趨勢。前十大支出圖表有獨立的月份/年度篩選下拉，不隨全域日期範圍聯動。
+- **前十大支出圖表**：`report_engine.top_expense_report()` 回傳指定期間金額最大的前 N 筆支出（逐筆，不依分類彙總）；API 端點為 `GET /api/report/top-expense?from=&to=`；Chart.js 水平柱狀圖（`indexAxis: y`），右側以 inline plugin 標註金額。
 
 ### 資料欄位
 
