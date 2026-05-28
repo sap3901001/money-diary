@@ -162,6 +162,7 @@
     const COLOR_NET = "#0d6efd";
     const COLOR_INCOME_BG = "rgba(25,135,84,0.6)";
     const COLOR_EXPENSE_BG = "rgba(220,53,69,0.6)";
+    const COLOR_TREND_AVG = "#f28e2b";
 
     const DONUT_PALETTE = [
       "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
@@ -409,23 +410,63 @@
       }
     }
 
+    // ── 滾動均線工具 ──
+    function subtractMonths(ym, n) {
+      let [y, m] = ym.split("-").map(Number);
+      m -= n;
+      while (m <= 0) { m += 12; y--; }
+      return `${y}-${String(m).padStart(2, "0")}`;
+    }
+
     // ── 圖三：月度趨勢 ──
     async function loadTrend() {
       const catMain = document.getElementById("trendCategoryFilter").value;
-      const params = catMain
-        ? `/api/report/trend?from=${_from}&to=${_to}&category_main=${encodeURIComponent(catMain)}`
-        : `/api/report/trend?from=${_from}&to=${_to}`;
+      const catParam = catMain ? `&category_main=${encodeURIComponent(catMain)}` : "";
+      const params = `/api/report/trend?from=${_from}&to=${_to}${catParam}`;
+
+      // 往前延伸 11 個月以計算滾動均值
+      const extFromYM = subtractMonths(_from.slice(0, 7), 11);
+      const extFrom = `${extFromYM}-01`;
+      const extParams = `/api/report/trend?from=${extFrom}&to=${_to}${catParam}`;
+
       try {
-        const data = await api.get(params);
+        const [data, extData] = await Promise.all([
+          api.get(params),
+          api.get(extParams),
+        ]);
+
         const noData = data.every(d => d.income === 0 && d.expense === 0);
         document.getElementById("noDataTrend").classList.toggle("d-none", !noData);
         document.getElementById("wrapTrend").classList.toggle("d-none", noData);
         if (noData) return;
 
-        const labels = data.map(d => d.month);
-        const income = data.map(d => d.income);
+        // 建立延伸資料的 expense 查詢表 { "YYYY-MM": expense }
+        const expenseMap = {};
+        extData.forEach(d => { expenseMap[d.month] = d.expense; });
+
+        // 計算每個顯示月份的 12 個月滾動均值與資料完整度
+        const rollingAvg = [];
+        const completeness = [];
+
+        data.forEach(d => {
+          let sum = 0;
+          let count = 0;
+          for (let i = 0; i < 12; i++) {
+            const ym = subtractMonths(d.month, i);
+            const exp = expenseMap[ym];
+            if (exp !== undefined && exp > 0) {
+              sum += exp;
+              count++;
+            }
+          }
+          rollingAvg.push(count > 0 ? Math.round(sum / count) : null);
+          completeness.push(count);
+        });
+
+        const labels  = data.map(d => d.month);
+        const income  = data.map(d => d.income);
         const expense = data.map(d => d.expense);
-        const net = data.map(d => d.net);
+        const net     = data.map(d => d.net);
 
         const ctx = document.getElementById("chartTrend").getContext("2d");
         if (_chartTrend) _chartTrend.destroy();
@@ -461,6 +502,19 @@
                 pointRadius: 3,
                 tension: 0.3,
               },
+              {
+                label: "支出12月均線",
+                data: rollingAvg,
+                borderColor: COLOR_TREND_AVG,
+                backgroundColor: "transparent",
+                borderWidth: 2,
+                borderDash: [6, 4],
+                tension: 0.3,
+                pointRadius: (ctx) => completeness[ctx.dataIndex] < 12 ? 5 : 3,
+                pointStyle: (ctx) => completeness[ctx.dataIndex] < 12 ? "triangle" : "circle",
+                pointBackgroundColor: COLOR_TREND_AVG,
+                spanGaps: false,
+              },
             ],
           },
           options: {
@@ -470,7 +524,14 @@
               legend: { position: "top" },
               tooltip: {
                 callbacks: {
-                  label: ctx => `${ctx.dataset.label}: ${ctx.raw.toLocaleString()}`,
+                  label: (ctx) => {
+                    const val = ctx.raw;
+                    if (val === null) return null;
+                    if (ctx.datasetIndex === 3 && completeness[ctx.dataIndex] < 12) {
+                      return `${ctx.dataset.label}: ${val.toLocaleString()} (僅 ${completeness[ctx.dataIndex]} 個月)`;
+                    }
+                    return `${ctx.dataset.label}: ${val.toLocaleString()}`;
+                  },
                 },
               },
             },
