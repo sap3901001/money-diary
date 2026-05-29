@@ -167,6 +167,7 @@ def parse_mbu_index(data: bytes) -> dict:
         # 路徑合理性驗證：必須含 .abd、.lst、.pwd 等副檔名或 \ 路徑分隔符
         fname = filepath.decode('ascii', errors='replace')
         if not any(ext in fname.lower() for ext in ('.abd', '.lst', '.pwd', '\\')):
+            pos = end + 2  # 跳過此行，讓 index_end 落在正確位置
             break
         size_str = data[sep + 1:end].decode('ascii', errors='replace').strip()
         try:
